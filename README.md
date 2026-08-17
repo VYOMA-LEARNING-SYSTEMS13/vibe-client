@@ -1,4 +1,4 @@
-# 🎨 VIBE Client (Frontend Web Application)
+# VIBE Client (Frontend Web Application)
 
 [![React](https://img.shields.io/badge/React-v19-blue.svg)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-v6-purple.svg)](https://vitejs.dev/)
@@ -9,19 +9,19 @@
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
-- 🎓 **Student Dashboard**: Browse verified task challenges (Task Mania), submit solutions, track mentorship requests, and view generated Virtual Resumes.
-- 👨‍🏫 **Faculty Mentor Portal**: Review incoming mentorship requests from students, approve/reject requests, and track student progress.
-- 🏢 **Industry Portal**: Create and manage industry task challenges, evaluate student solution submissions, and hire verified talent.
-- 🔐 **Multi-Step Signup & Role Switcher**: Interactive 4-step stepper with instant email OTP verification and clear role selection.
-- 🌐 **Community Feed**: Expressive social feed with post creation, comment threads, attachment previews, and interactive vibe upvoting.
-- 📱 **Progressive Web App (PWA)**: Built-in service worker caching, offline capability, and installable app manifest.
-- ⚡ **Vite Proxy & Seamless API Layer**: Integrated Axios client with automatic Bearer token injection and Vite dev server proxying to backend (`/api/v1` -> `http://localhost:8000`).
+- **Student Dashboard**: Browse verified task challenges (Task Mania), submit solutions, track mentorship requests, and view generated Virtual Resumes.
+- **Faculty Mentor Portal**: Review incoming mentorship requests from students, approve or reject requests, and track student progress.
+- **Industry Portal**: Create and manage industry task challenges, evaluate student solution submissions, and hire verified talent.
+- **Multi-Step Signup & Role Switcher**: Interactive 4-step stepper with instant email OTP verification and role selection.
+- **Community Feed**: Expressive social feed with post creation, comment threads, attachment previews, and interactive vibe upvoting.
+- **Progressive Web App (PWA)**: Built-in service worker caching, offline capability, and installable app manifest.
+- **Vite Proxy & API Layer**: Integrated Axios client with automatic Bearer token injection and Vite dev server proxying to backend (`/api/v1` -> `http://localhost:8000`).
 
 ---
 
-## 🏗️ Frontend Component & Module Architecture
+## Frontend Component & Module Architecture
 
 ```mermaid
 graph TD
@@ -81,7 +81,7 @@ graph TD
 
 ---
 
-## 🎭 Multi-Role Navigation & User Journey Flow
+## Multi-Role Navigation & User Journey Flow
 
 ```mermaid
 sequenceDiagram
@@ -119,7 +119,7 @@ sequenceDiagram
 
 ---
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```
 vibe-client/
@@ -155,7 +155,7 @@ vibe-client/
 
 ---
 
-## 🛠️ Environment Configuration
+## Environment Configuration
 
 You can optionally configure environment variables in `.env` or `.env.local` inside `vibe-client`:
 
@@ -184,7 +184,7 @@ server: {
 
 ---
 
-## ⚡ Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -216,6 +216,6 @@ server: {
 
 ---
 
-## 🛡️ License
+## License
 
 Distributed under the **ISC License**.
