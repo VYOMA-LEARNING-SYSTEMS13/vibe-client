@@ -43,8 +43,8 @@ import SubmissionModal from "../components/industry/SubmissionModal";
 import api from "../services/api";
 import { useToast } from "../components/Toast";
 import { FacultyTopHeader } from "../components/faculty/FacultyTopHeader";
-import { ApplicationFormModal } from "../components/TaskMania/ApplicationFormModal";
-import { MentorRequestModal } from "../components/TaskMania/MentorRequestModal";
+import { ApplicationFormModal } from "../components/taskmania/ApplicationFormModal";
+import { MentorRequestModal } from "../components/taskmania/MentorRequestModal";
 
 export const TaskDetailsPage = () => {
   const { taskId } = useParams();
