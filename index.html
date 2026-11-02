@@ -8,17 +8,17 @@
 
   <!-- PWA Meta Tags -->
   <meta name="description" content="Connect with verified internships and mentorship opportunities">
-  <meta name="theme-color" content="#FF6B00">
+  <meta name="theme-color" content="#1D3C5A">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="VIBE">
-  <meta name="msapplication-TileColor" content="#FF6B00">
+  <meta name="msapplication-TileColor" content="#1D3C5A">
   <meta name="msapplication-config" content="/browserconfig.xml">
 
   <!-- Icons -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <link rel="mask-icon" href="/masked-icon.svg" color="#FF6B00">
+  <link rel="mask-icon" href="/masked-icon.svg" color="#1D3C5A">
 
   <script>
     // Suppress non-critical console warnings in development
@@ -63,7 +63,42 @@
       theme: {
         extend: {
           colors: {
-            'vibe-orange': '#FF6B00',
+            vibePrimary: 'var(--vibe-primary)',
+            vibePrimaryHover: 'var(--vibe-primary-hover)',
+            vibePrimaryLight: 'var(--vibe-primary-light)',
+            vibeNavyBrand: 'var(--vibe-navy)',
+            vibeBorderColor: 'var(--vibe-border)',
+            vibePurple: '#7540F5',
+            vibePurpleHover: '#6025EB',
+            vibePurpleLight: '#A45AFF',
+            vibePurpleSurface: '#F5F1FF',
+            vibeNavy: '#111B5E',
+            vibeNavyMuted: '#5A6482',
+            vibeBlueSurface: '#EDF7FF',
+            navy: '#1D3C5A',
+            ink: '#12283F',
+            steel: '#4B7EA3',
+            powder: '#D3E3EE',
+            mist: '#E6EEF5',
+            chip: '#D8E5EF',
+            brandText: '#5E6A76',
+            muted: '#728494',
+            brandBorder: '#C9D8E4',
+            accent: '#A5632E',
+            notify: '#2F6DB5',
+            'vibe-orange': '#1D3C5A',
+            orange: {
+              50: '#E6EEF5',
+              100: '#D3E3EE',
+              200: '#D8E5EF',
+              300: '#C9D8E4',
+              400: '#4B7EA3',
+              500: '#4B7EA3',
+              600: '#1D3C5A',
+              700: '#12283F',
+              800: '#12283F',
+              900: '#0F1E30',
+            }
           }
         }
       }
@@ -71,93 +106,8 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto:wght@400;500;600;700;800;900&display=swap"
     rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #FAFAFA;
-      color: #0F0F0F;
-      margin: 0;
-      overflow-x: hidden;
-    }
-
-    ::selection {
-      background: #FF6B00;
-      color: white;
-    }
-
-    /* Custom scrollbar */
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: #FAFAFA;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #E2E8F0;
-      border-radius: 10px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #FF6B00;
-    }
-
-    /* PWA Install Button Styles */
-    .install-button {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #FF6B00;
-      color: white;
-      border: none;
-      border-radius: 50px;
-      padding: 12px 24px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
-      transition: all 0.3s ease;
-      z-index: 1000;
-      display: none;
-    }
-
-    .install-button:hover {
-      background: #e55a00;
-      transform: scale(1.05);
-      box-shadow: 0 6px 16px rgba(255, 107, 0, 0.4);
-    }
-
-    .install-button.show {
-      display: block;
-      animation: slideIn 0.3s ease-out;
-    }
-
-    @keyframes slideIn {
-      from {
-        transform: translateX(100px);
-        opacity: 0;
-      }
-
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
-    }
-
-    @keyframes slideDown {
-      from {
-        transform: translate(-50%, -100%);
-        opacity: 0;
-      }
-
-      to {
-        transform: translate(-50%, 0);
-        opacity: 1;
-      }
-    }
-  </style>
   <script type="importmap">
 {
   "imports": {

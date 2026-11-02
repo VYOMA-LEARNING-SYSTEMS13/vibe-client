@@ -1,7 +1,10 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { auth } from "../../utils/auth";
+import api from "../../services/api";
 import Avatar from "../shared/Avatar";
+import { useToast } from "../Toast";
 import {
   User,
   Building,
@@ -19,11 +22,17 @@ import {
   Phone,
 } from "lucide-react";
 
-export const ProfileView = ({ user, onProfileUpdate }) => {
+export const ProfileView = ({ user, onProfileUpdate, onBackToFeed }) => {
+  const navigate = useNavigate();
+  const toast = useToast();
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const isEditing = false;
   const [loading, setLoading] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: user.name || '',
@@ -49,10 +58,10 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
         onProfileUpdate(updatedUser);
       }
       setIsEditing(false);
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
     } catch (error) {
       console.error(error);
-      alert('Failed to update profile');
+      toast.error('Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -66,107 +75,153 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
     }
   };
 
+  const handleUpdatePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error('Please fill in all password fields');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('New password must be at least 6 characters long');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('New password and confirmation do not match');
+      return;
+    }
+    try {
+      setPwLoading(true);
+      await api.post('/users/change-password', { currentPassword, newPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success('Password updated successfully!');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update password');
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  // Refined compact input styles: 8px-10px border radius (rounded-lg), consistent heights
+  // Refined input styles matching VIBE dashboard theme
   const inputClasses =
-    "w-full px-5 py-3.5 rounded-2xl border border-white/60 bg-white/40 backdrop-blur-md focus:bg-white focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all text-gray-800 placeholder-gray-400 font-medium shadow-sm hover:bg-white/60";
+    "w-full px-3.5 py-2.5 rounded-xl border border-[#E1E8F2] bg-white focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#6D3DF5]/15 outline-none transition-all text-[#172554] placeholder-[#94A3B8] text-sm font-medium hover:border-[#CBD5E1]";
 
   return (
-    <div className="space-y-12 pb-20">
-      {/* 1. Profile Header */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white/80 backdrop-blur-xl rounded-[3rem] p-6 md:p-10 border border-white shadow-xl flex flex-col md:flex-row items-center gap-8"
-      >
-        <div className="relative group">
-          <div className="w-24 h-24 md:w-32 md:h-32 rounded-[2rem] md:rounded-[2.5rem] bg-gradient-to-tr from-orange-500 to-amber-300 p-1">
-            <Avatar
-              name={user.name}
-              src={user.ImageUrl || user.avatar}
-              className="w-full h-full rounded-[1.8rem] md:rounded-[2.2rem] border-4 border-white"
-              initialsClassName="text-3xl md:text-4xl"
-            />
-          </div>
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-            className="absolute -inset-2 rounded-[2.3rem] md:rounded-[2.8rem] border-2 border-dashed border-orange-500/30 -z-10"
-          />
+    /* Centered content container with a sensible max width (~1150px) */
+    <div className="max-w-[1150px] mx-auto w-full space-y-6 pb-12">
+      {/* Back to Feed button */}
+      {onBackToFeed && (
+        <div className="flex items-center">
+          <button
+            onClick={onBackToFeed}
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#64748B] hover:text-[#6D3DF5] transition-colors"
+          >
+            <ChevronLeft size={16} />
+            <span>Back to Home Feed</span>
+          </button>
         </div>
+      )}
 
-        <div className="flex-1 text-center md:text-left space-y-2 w-full">
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-            <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
-              {user.name}
-            </h2>
-            <span className="px-4 py-1.5 rounded-full bg-orange-100 text-orange-600 text-[10px] md:text-xs font-black uppercase tracking-widest ring-1 ring-orange-200">
-              {user.role}
-            </span>
-          </div>
-          <p className="text-gray-500 font-medium text-sm md:text-base">
-            {formData.position} • {formData.department}
-          </p>
-
-          <div className="pt-4 max-w-sm mx-auto md:mx-0">
-            <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-xs md:text-sm font-bold text-gray-400">
-                Profile Completion
-              </span>
-              <span className="text-xs md:text-sm font-black text-orange-600">
-                90%
-              </span>
-            </div>
-            <div className="h-2.5 md:h-3 w-full bg-gray-100 rounded-full overflow-hidden p-0.5">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: "90%" }}
-                transition={{ duration: 1.5, ease: "easeOut" }}
-                className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full"
+      {/* 1. Profile Header Card */}
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col md:flex-row items-center justify-between gap-6"
+      >
+        <div className="flex flex-col md:flex-row items-center gap-5 w-full md:w-auto">
+          {/* Avatar Container with Purple Theme */}
+          <div className="relative group flex-shrink-0">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-[#6D3DF5] p-0.5 shadow-sm">
+              <Avatar
+                name={user.name}
+                src={user.ImageUrl || user.avatar}
+                variant="purple"
+                className="w-full h-full rounded-[14px]"
+                initialsClassName="text-xl md:text-2xl text-white font-bold"
               />
             </div>
           </div>
+
+          {/* Details & Info */}
+          <div className="text-center md:text-left space-y-1 w-full">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
+              <h2 className="text-xl md:text-2xl font-bold text-[#172554] tracking-tight">
+                {user.name}
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full bg-[#F2ECFF] text-[#6D3DF5] text-[10px] font-bold uppercase tracking-wider border border-[#E9E1FF]">
+                {user.role}
+              </span>
+            </div>
+            <p className="text-[#64748B] font-medium text-xs md:text-sm">
+              {formData.position || "Faculty Member"} • {formData.department || "General"}
+            </p>
+
+            {/* Profile Completion Bar */}
+            <div className="pt-2 w-full max-w-xs mx-auto md:mx-0">
+              <div className="flex items-center justify-between mb-1 px-0.5">
+                <span className="text-xs font-semibold text-[#64748B]">
+                  Profile Completion
+                </span>
+                <span className="text-xs font-bold text-[#6D3DF5]">
+                  90%
+                </span>
+              </div>
+              <div className="h-2 w-full bg-[#F2ECFF] rounded-full overflow-hidden p-0.5 border border-[#E9E1FF]">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: "90%" }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className="h-full bg-[#6D3DF5] rounded-full"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
-        <button
-          onClick={handleEditClick}
-          disabled={loading}
-          className={`w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold transition-all ${isEditing ? "bg-orange-600 text-white shadow-orange-200" : "bg-gray-50 text-gray-600 hover:bg-gray-100"} shadow-lg`}
-        >
-          <Edit3 size={18} />
-          <span>{isEditing ? "Save Changes" : "Edit Profile"}</span>
-        </button>
-      </motion.section>
+        </motion.section>
 
       {/* 2. Stepper Form Section */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-4">
+      <section className="space-y-4">
+        {/* Stepper Header */}
+        <div className="flex items-center gap-2.5">
           <div
-            className={`p-3 rounded-2xl ${step === 1 ? "bg-orange-500 text-white" : "bg-white text-orange-500 border border-orange-100"} shadow-lg transition-colors`}
+            className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+              step === 1
+                ? "bg-[#6D3DF5] text-white shadow-xs"
+                : "bg-white text-[#64748B] border border-[#E1E8F2]"
+            } transition-colors flex-shrink-0`}
           >
-            <User size={24} />
+            <User size={18} />
           </div>
-          <div className="h-px w-4 md:w-8 bg-gray-200" />
+          <div className="h-px w-4 md:w-6 bg-[#CBD5E1]" />
           <div
-            className={`p-3 rounded-2xl ${step === 2 ? "bg-orange-500 text-white" : "bg-white text-orange-500 border border-orange-100"} shadow-lg transition-colors`}
+            className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+              step === 2
+                ? "bg-[#6D3DF5] text-white shadow-xs"
+                : "bg-white text-[#64748B] border border-[#E1E8F2]"
+            } transition-colors flex-shrink-0`}
           >
-            <Award size={24} />
+            <Award size={18} />
           </div>
-          <h3 className="text-xl md:text-2xl font-black text-gray-900 ml-2">
+          <h3 className="text-lg font-bold text-[#172554] ml-1.5">
             {step === 1 ? "Personal Information" : "Professional Information"}
           </h3>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 border border-white shadow-xl">
+        {/* Form Container */}
+        <div className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
           <AnimatePresence mode="wait">
             {step === 1 ? (
               <motion.div
                 key="step1"
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8"
+                exit={{ opacity: 0, x: 12 }}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5"
               >
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
                     Full Name
                   </label>
                   <input
@@ -179,19 +234,19 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                     placeholder="Enter full name"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
                     Email Address
                   </label>
                   <input
                     type="email"
                     value={user.email}
                     disabled
-                    className={inputClasses + " opacity-60 cursor-not-allowed"}
+                    className={inputClasses + " opacity-60 cursor-not-allowed bg-[#F8FAFC]"}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
                     Mobile Number
                   </label>
                   <input
@@ -203,8 +258,8 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                     className={inputClasses}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
                     Date of Birth
                   </label>
                   <input
@@ -216,15 +271,15 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                     className={inputClasses}
                   />
                 </div>
-                <div className="md:col-span-2 flex justify-end pt-4">
+                <div className="md:col-span-2 flex justify-end pt-2">
                   <button
                     onClick={() => setStep(2)}
-                    className="w-full md:w-auto flex items-center justify-center gap-2 bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold shadow-xl hover:bg-gray-800 transition-all group"
+                    className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#6D3DF5] text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-xs hover:bg-[#5B2FD6] transition-all group"
                   >
                     Next Step{" "}
                     <ChevronRight
-                      size={18}
-                      className="group-hover:scale-110 transition-transform"
+                      size={16}
+                      className="group-hover:translate-x-0.5 transition-transform"
                     />
                   </button>
                 </div>
@@ -232,13 +287,13 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
             ) : (
               <motion.div
                 key="step2"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 12 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8"
+                exit={{ opacity: 0, x: -12 }}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5"
               >
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
                     College/University
                   </label>
                   <input
@@ -251,8 +306,8 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                     className={inputClasses}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
                     Position/Designation
                   </label>
                   <input
@@ -265,8 +320,8 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                     className={inputClasses}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
                     Department
                   </label>
                   <input
@@ -279,8 +334,8 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                     className={inputClasses}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
                     Years of Experience
                   </label>
                   <input
@@ -293,8 +348,8 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                     className={inputClasses}
                   />
                 </div>
-                <div className="md:col-span-2 space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
+                <div className="md:col-span-2 space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
                     Areas of Expertise
                   </label>
                   <textarea
@@ -307,20 +362,14 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                     className={inputClasses + " resize-none"}
                   />
                 </div>
-                <div className="md:col-span-2 flex flex-col md:flex-row justify-between gap-4 pt-4">
+                <div className="md:col-span-2 flex flex-col md:flex-row justify-between gap-3 pt-2">
                   <button
                     onClick={() => setStep(1)}
-                    className="flex items-center justify-center gap-2 text-gray-500 font-bold px-4 py-2 hover:text-gray-900 transition-colors"
+                    className="flex items-center justify-center gap-1.5 text-[#64748B] text-sm font-bold px-3 py-2 hover:text-[#6D3DF5] transition-colors"
                   >
-                    <ChevronLeft size={18} /> Back
+                    <ChevronLeft size={16} /> Back
                   </button>
-                  <button 
-                    onClick={handleUpdateProfile}
-                    disabled={!isEditing || loading}
-                    className="w-full md:w-auto flex items-center justify-center gap-2 bg-orange-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-orange-200 hover:bg-orange-700 transition-all"
-                  >
-                    {loading ? 'Updating...' : 'Update Profile'} <CheckCircle2 size={18} />
-                  </button>
+                  
                 </div>
               </motion.div>
             )}
@@ -328,99 +377,47 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
         </div>
       </section>
 
-      {/* 3. Change Password Section */}
-      <section className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 border border-white shadow-xl grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
-        <div className="lg:col-span-1 space-y-4">
-          <div className="w-16 h-16 rounded-[1.5rem] bg-orange-50 text-orange-500 flex items-center justify-center shadow-lg shadow-orange-100">
-            <Lock size={32} />
+      {/* 4. Statistics Section (3 equal-width cards) */}
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5">
+        <div className="bg-white p-5 rounded-2xl border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] flex items-center justify-center flex-shrink-0">
+            <Award size={22} />
           </div>
-          <h3 className="text-2xl font-black text-gray-900">Security Center</h3>
-          <p className="text-gray-500 font-medium leading-relaxed text-sm md:text-base">
-            Protect your account by using a strong password. We recommend a mix
-            of symbols, numbers, and capital letters.
-          </p>
-        </div>
-
-        <div className="lg:col-span-2 space-y-6">
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Current Password"
-              className={inputClasses + " pr-12"}
-            />
-            <button
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-orange-500 transition-colors"
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="password"
-              placeholder="New Password"
-              className={inputClasses}
-            />
-            <input
-              type="password"
-              placeholder="Confirm Password"
-              className={inputClasses}
-            />
-          </div>
-
-          <button className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black shadow-xl hover:bg-gray-800 transition-all flex items-center justify-center gap-3">
-            Update Password <Lock size={18} />
-          </button>
-        </div>
-      </section>
-
-      {/* 4. Statistics Section */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white shadow-xl">
-          <div className="flex items-center gap-6">
-            <div className="p-4 rounded-2xl bg-orange-50 text-orange-600 shadow-sm">
-              <Award size={28} />
-            </div>
-            <div>
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-1">
-                Students Mentored
-              </span>
-              <span className="text-3xl font-black text-gray-900 tracking-tight">
-                45
-              </span>
-            </div>
+          <div>
+            <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block mb-0.5">
+              Students Mentored
+            </span>
+            <span className="text-2xl font-black text-[#172554] tracking-tight">
+              45
+            </span>
           </div>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white shadow-xl">
-          <div className="flex items-center gap-6">
-            <div className="p-4 rounded-2xl bg-green-50 text-green-600 shadow-sm">
-              <CheckCircle2 size={28} />
-            </div>
-            <div>
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-1">
-                Tasks Reviewed
-              </span>
-              <span className="text-3xl font-black text-gray-900 tracking-tight">
-                128
-              </span>
-            </div>
+        <div className="bg-white p-5 rounded-2xl border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE] flex items-center justify-center flex-shrink-0">
+            <CheckCircle2 size={22} />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block mb-0.5">
+              Tasks Reviewed
+            </span>
+            <span className="text-2xl font-black text-[#172554] tracking-tight">
+              128
+            </span>
           </div>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white shadow-xl">
-          <div className="flex items-center gap-6">
-            <div className="p-4 rounded-2xl bg-amber-50 text-amber-600 shadow-sm">
-              <BookOpen size={28} />
-            </div>
-            <div>
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-1">
-                Active Requests
-              </span>
-              <span className="text-3xl font-black text-gray-900 tracking-tight">
-                12
-              </span>
-            </div>
+        <div className="bg-white p-5 rounded-2xl border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-[#FAF5FF] text-[#7C3AED] border border-[#EDE9FE] flex items-center justify-center flex-shrink-0">
+            <BookOpen size={22} />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block mb-0.5">
+              Active Requests
+            </span>
+            <span className="text-2xl font-black text-[#172554] tracking-tight">
+              12
+            </span>
           </div>
         </div>
       </section>

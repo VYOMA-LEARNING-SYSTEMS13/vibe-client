@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Home,
   LayoutDashboard,
   Users,
   Briefcase,
@@ -7,7 +8,6 @@ import {
   LogOut,
   Menu,
   X,
-  Bell,
   GraduationCap,
   User,
   BookOpen,
@@ -18,8 +18,10 @@ import {
 import { auth } from "../../utils/auth";
 import { useNavigate } from "react-router-dom";
 import Avatar from "./Avatar";
+import { NotificationBell } from "./NotificationBell";
 import { Sidebar as StudentSidebar } from "../student/Sidebar";
 import { Sidebar as FacultySidebar } from "../faculty/Sidebar";
+import { useToast } from "../Toast";
 
 const SidebarItem = ({
   icon: Icon,
@@ -33,26 +35,26 @@ const SidebarItem = ({
 
   const colorClasses = {
     orange: {
-      active: "bg-orange-500 text-white shadow-lg shadow-orange-500/30",
-      inactive: "text-slate-500 hover:bg-orange-50 hover:text-orange-600",
+      active: "bg-[#1D3C5A] text-white shadow-lg shadow-[#1D3C5A]/20",
+      inactive: "text-[#5E6A76] hover:bg-[#E6EEF5] hover:text-[#1D3C5A]",
       iconActive: "text-white",
-      iconInactive: "text-slate-400 group-hover:text-orange-500",
+      iconInactive: "text-[#728494] group-hover:text-[#1D3C5A]",
     },
     purple: {
-      active: "bg-purple-500 text-white shadow-lg shadow-purple-500/30",
-      inactive: "text-slate-500 hover:bg-purple-50 hover:text-purple-600",
+      active: "bg-[#1D3C5A] text-white shadow-lg shadow-[#1D3C5A]/20",
+      inactive: "text-[#5E6A76] hover:bg-[#E6EEF5] hover:text-[#1D3C5A]",
       iconActive: "text-white",
-      iconInactive: "text-slate-400 group-hover:text-purple-500",
+      iconInactive: "text-[#728494] group-hover:text-[#1D3C5A]",
     },
     blue: {
-      active: "bg-blue-500 text-white shadow-lg shadow-blue-500/30",
-      inactive: "text-slate-500 hover:bg-blue-50 hover:text-blue-600",
+      active: "bg-[#2F6DB5] text-white shadow-lg shadow-[#2F6DB5]/20",
+      inactive: "text-[#5E6A76] hover:bg-[#E6EEF5] hover:text-[#2F6DB5]",
       iconActive: "text-white",
-      iconInactive: "text-slate-400 group-hover:text-blue-500",
+      iconInactive: "text-[#728494] group-hover:text-[#2F6DB5]",
     },
   };
 
-  const colors = colorClasses[color];
+  const colors = colorClasses[color] || colorClasses.orange;
 
   return (
     <button
@@ -83,24 +85,21 @@ export const DashboardLayout = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const currentUser = user || auth.getCurrentUser();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   const handleLogout = async () => {
-    // Show confirmation dialog
-    const confirmLogout = window.confirm("Are you sure you want to logout?");
-
-    if (confirmLogout) {
-      // Clear authentication data
+    const confirmed = await toast.confirm({
+      title: "Logout?",
+      message: "Are you sure you want to logout?",
+      confirmText: "Logout",
+      danger: true,
+    });
+    if (confirmed) {
       await auth.logout();
-
-      // Redirect to home page
       navigate("/");
-
-      // Optional: Show success message
-      setTimeout(() => {
-        alert("You have been successfully logged out!");
-      }, 100);
+      toast.success("You have been successfully logged out!");
     }
   };
 
@@ -108,25 +107,25 @@ export const DashboardLayout = ({
   const roleConfig = {
     student: {
       color: "orange",
-      bgGradient: "from-orange-50/30 via-white to-amber-50/20",
-      borderColor: "border-orange-100",
-      hoverColor: "hover:text-orange-500",
+      bgGradient: "from-[#E6EEF5] via-white to-[#D3E3EE]/40",
+      borderColor: "border-[#C9D8E4]",
+      hoverColor: "hover:text-[#1D3C5A]",
       profileTitle: "Student Profile",
       overviewTitle: "Dashboard Overview",
     },
     faculty: {
       color: "orange",
-      bgGradient: "from-orange-50/30 via-white to-amber-50/20",
-      borderColor: "border-orange-100",
-      hoverColor: "hover:text-orange-500",
+      bgGradient: "from-[#E6EEF5] via-white to-[#D3E3EE]/40",
+      borderColor: "border-[#C9D8E4]",
+      hoverColor: "hover:text-[#1D3C5A]",
       profileTitle: "Faculty Profile",
       overviewTitle: "Dashboard Overview",
     },
     industry: {
       color: "orange",
-      bgGradient: "from-orange-50/30 via-white to-amber-50/20",
-      borderColor: "border-orange-100",
-      hoverColor: "hover:text-orange-500",
+      bgGradient: "from-[#E6EEF5] via-white to-[#D3E3EE]/40",
+      borderColor: "border-[#C9D8E4]",
+      hoverColor: "hover:text-[#1D3C5A]",
       profileTitle: "Industry Profile",
       overviewTitle: "Dashboard Overview",
     },
@@ -146,6 +145,7 @@ export const DashboardLayout = ({
         ];
       case "faculty":
         return [
+          { icon: Home, label: "Faculty Home", id: "home" },
           { icon: MessageSquare, label: "Community Posts", id: "posts" },
           { icon: UserCheck, label: "Mentor Requests", id: "requests" },
           { icon: User, label: "My Profile", id: "profile" },
@@ -262,7 +262,7 @@ export const DashboardLayout = ({
 
       {/* Mobile Header & Content */}
       <div
-        className={`flex-1 flex flex-col h-screen overflow-hidden ${role === "student" ? "lg:ml-80 xl:ml-96" : role === "faculty" ? "lg:ml-80 xl:ml-96" : ""}`}
+        className={`flex-1 flex flex-col h-screen overflow-hidden ${role === "student" ? "lg:ml-80 xl:ml-96" : role === "faculty" ? "lg:ml-28 xl:ml-28" : ""}`}
       >
         {/* Mobile Header - Only show for non-student/faculty roles */}
         {role !== "student" && role !== "faculty" && (
@@ -349,14 +349,7 @@ export const DashboardLayout = ({
             )}
           </h1>
           <div className="flex items-center gap-4">
-            <button
-              className={`relative p-2 text-slate-400 ${config.hoverColor} transition-colors`}
-            >
-              <Bell size={20} />
-              <span
-                className={`absolute top-1 right-2 w-2 h-2 bg-${config.color}-500 rounded-full border border-white`}
-              ></span>
-            </button>
+            <NotificationBell />
             <div className="text-right">
               <p className="text-sm font-medium text-slate-800">
                 {new Date().toLocaleDateString("en-US", {

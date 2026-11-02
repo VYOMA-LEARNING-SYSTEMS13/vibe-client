@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Calendar,
@@ -10,258 +11,413 @@ import {
   MapPin,
   FileText,
   UserPlus,
-  Video,
-  ExternalLink,
-  XCircle,
-  Clock,
   Building2,
+  Loader2,
+  Clock,
+  Bookmark,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { CATEGORY_ICONS } from "../constants";
+import { auth } from "../../utils/auth";
+import { isTaskExpired } from "../../utils/taskRelevance";
 
 export const TaskCard = ({
   task,
-  isSubmitted,
+  isAccepted,
+  isSolutionSubmitted,
+  isApplying,
+  isBookmarked = false,
+  onToggleBookmark,
   mentorRequest,
   onOpenInstructions,
-  onOpenApply,
+  onApplyDirect,
+  onOpenSubmitTask,
   onOpenMentorRequest,
+  // Drag & Reorder props
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  onDrop,
+  isDragging = false,
+  isDropTarget = false,
+  onMoveTask,
 }) => {
-  const isClosed = typeof task.deadlineTs === "number" && Date.now() > task.deadlineTs;
+  const navigate = useNavigate();
+  const isClosed = isTaskExpired(task);
+  const taskId = task.id || task._id;
+  const currentUser = auth.getCurrentUser();
+  const rawRole = String(currentUser?.role || currentUser?.accountType || "").trim().toLowerCase();
+  const isStudent = rawRole === "student";
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.3 }}
-      className="bg-white rounded-2xl p-6 shadow-xl shadow-orange-100/50 border border-orange-50 relative overflow-hidden group flex flex-col h-full"
+      transition={{ duration: 0.25 }}
+      onClick={() => {
+        if (taskId) navigate(`/tasks/${taskId}`);
+      }}
+      draggable={isStudent && Boolean(onDragStart)}
+      onDragStart={(e) => {
+        if (onDragStart) onDragStart(e, task);
+      }}
+      onDragOver={(e) => {
+        if (onDragOver) onDragOver(e, task);
+      }}
+      onDragEnd={(e) => {
+        if (onDragEnd) onDragEnd(e, task);
+      }}
+      onDrop={(e) => {
+        if (onDrop) onDrop(e, task);
+      }}
+      className={`rounded-2xl p-4 sm:p-5 border transition-all relative overflow-hidden group flex flex-col h-full cursor-pointer ${
+        isDragging
+          ? "opacity-35 scale-[0.98] border-dashed border-[#6D3DF5] shadow-lg bg-[#FAF7FF]"
+          : isDropTarget
+          ? "border-2 border-[#6D3DF5] ring-4 ring-[#6D3DF5]/15 shadow-md bg-[#FAF7FF]"
+          : isClosed
+          ? "bg-slate-50/80 border-slate-200/90 hover:border-slate-300 shadow-2xs opacity-85"
+          : "bg-white border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm"
+      }`}
     >
       {/* Decorative Gradient Blob */}
-      <div className="absolute -top-12 -right-12 w-40 h-40 bg-orange-50 rounded-full blur-3xl group-hover:bg-orange-100 transition-colors duration-500 z-0" />
+      {!isClosed && (
+        <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#F3EEFF] rounded-full blur-2xl group-hover:bg-[#EDE9FE] transition-colors duration-500 z-0 pointer-events-none" />
+      )}
 
-      <div className="relative z-10 flex-1">
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border border-orange-100/50">
-            {CATEGORY_ICONS[task.category]}
-            <span>{task.category}</span>
+      <div className="relative z-10 flex-1 flex flex-col">
+        {/* Top Badges Row */}
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex items-center gap-1.5 min-w-0">
+            {/* Drag Handle & Touch/Keyboard Reorder Controls */}
+            {isStudent && Boolean(onMoveTask) && (
+              <div
+                className="flex items-center text-slate-400 bg-slate-50 hover:bg-[#F3EEFF] rounded-lg p-0.5 border border-slate-200/80 transition-colors shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div
+                  title="Drag to reorder task"
+                  aria-label="Drag to reorder task"
+                  className="p-1 cursor-grab active:cursor-grabbing text-slate-400 hover:text-[#6D3DF5] transition-colors"
+                >
+                  <GripVertical size={14} />
+                </div>
+                <div className="flex flex-col border-l border-slate-200/80 pl-0.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMoveTask(task, -1);
+                    }}
+                    title="Move higher in priority"
+                    aria-label="Move task up"
+                    className="p-0.5 text-slate-400 hover:text-[#6D3DF5] hover:bg-white rounded transition-colors cursor-pointer"
+                  >
+                    <ChevronUp size={10} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMoveTask(task, 1);
+                    }}
+                    title="Move lower in priority"
+                    aria-label="Move task down"
+                    className="p-0.5 text-slate-400 hover:text-[#6D3DF5] hover:bg-white rounded transition-colors cursor-pointer"
+                  >
+                    <ChevronDown size={10} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Category Badge */}
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider border shrink-0 ${
+              isClosed
+                ? "text-slate-600 bg-slate-100 border-slate-200"
+                : "text-[#6D3DF5] bg-[#F3EEFF] border-[#E9E1FF]"
+            }`}>
+              {CATEGORY_ICONS[task.category] || <Briefcase size={11} />}
+              <span className="truncate">{task.category || "Development"}</span>
+            </div>
           </div>
 
-          <div className="flex flex-col items-end gap-2">
+          {/* Status & Meta Badges + Bookmark */}
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {/* Deadline Passed Badge */}
+            {isClosed && (
+              <span className="inline-flex items-center gap-1 text-rose-700 text-[11px] font-bold bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                <Clock size={11} className="text-rose-600" />
+                <span>Deadline Passed</span>
+              </span>
+            )}
+
             {/* Mode Badge */}
-            <div
-              className={`flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border ${
-                task.mode === "Remote"
-                  ? "bg-blue-50 text-blue-600 border-blue-100"
-                  : "bg-orange-50 text-orange-600 border-orange-100"
-              }`}
-            >
+            <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+              isClosed
+                ? "bg-slate-100 text-slate-600 border-slate-200"
+                : "bg-[#F3EEFF] text-[#6D3DF5] border-[#E9E1FF]"
+            }`}>
               {task.mode === "Remote" ? (
-                <Globe size={12} />
+                <Globe size={11} />
               ) : (
-                <MapPin size={12} />
+                <MapPin size={11} />
               )}
-              <span>{task.mode}</span>
-            </div>
+              <span>{task.mode || "Remote"}</span>
+            </span>
 
             {/* Paid Badge */}
-            <div
-              className={`flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border ${
-                task.paid
+            <span
+              className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                isClosed
+                  ? "bg-slate-100 text-slate-500 border-slate-200"
+                  : task.paid
                   ? "bg-green-50 text-green-700 border-green-100"
                   : "bg-gray-50 text-gray-600 border-gray-100"
               }`}
             >
               {task.paid ? "Paid" : "Unpaid"}
-            </div>
+            </span>
 
-            {/* Submitted Badge (icon only) */}
-            {isSubmitted && (
-              <div className="flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 px-2.5 py-1 rounded-full border border-green-100">
-                <CheckCircle2 size={14} />
-              </div>
+            {/* Submission / Acceptance Status Badges */}
+            {isSolutionSubmitted ? (
+              <span className="inline-flex items-center gap-1 text-emerald-700 text-[11px] font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                <CheckCircle2 size={11} className="text-emerald-600" />
+                <span>Submitted</span>
+              </span>
+            ) : isAccepted ? (
+              <span className="inline-flex items-center gap-1 text-[#6D3DF5] text-[11px] font-bold bg-[#F3EEFF] px-2 py-0.5 rounded-full border border-[#E9E1FF]">
+                <Clock size={11} />
+                <span>In Progress</span>
+              </span>
+            ) : null}
+
+            {/* Task Bookmark Button (Students only) */}
+            {isStudent && Boolean(onToggleBookmark) && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (typeof onToggleBookmark === "function") {
+                    onToggleBookmark(taskId);
+                  }
+                }}
+                title={isBookmarked ? "Remove from bookmarks" : "Save task to bookmarks"}
+                aria-label={isBookmarked ? "Remove from bookmarks" : "Save task to bookmarks"}
+                className={`p-1 rounded-full transition-all cursor-pointer ${
+                  isBookmarked
+                    ? "text-[#6D3DF5] bg-[#F3EEFF] hover:bg-[#EDE9FE]"
+                    : "text-[#94A3B8] hover:text-[#6D3DF5] hover:bg-[#F8FAFC]"
+                }`}
+              >
+                <Bookmark
+                  size={13}
+                  className={isBookmarked ? "fill-[#6D3DF5]" : ""}
+                />
+              </button>
             )}
           </div>
         </div>
 
-        <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-orange-600 transition-colors line-clamp-2">
+        {/* Task Title */}
+        <h3
+          onClick={() => {
+            if (taskId) navigate(`/tasks/${taskId}`);
+          }}
+          className="text-base sm:text-lg font-bold text-gray-900 group-hover:text-[#6D3DF5] transition-colors line-clamp-2 cursor-pointer leading-snug"
+          title={task.title}
+        >
           {task.title}
         </h3>
 
         {/* Company Name */}
-        <div className="flex items-center gap-2 mb-5 mt-3">
-          <div className="p-1.5 bg-orange-100 text-orange-600 rounded-lg">
-            <Building2 size={14} />
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            const companyId = task.companyId || task.createdBy?._id || task.createdBy;
+            if (companyId) navigate(`/profile/${companyId}?view=company`);
+          }}
+          className={`inline-flex items-center gap-1.5 mt-1.5 mb-2.5 ${
+            task.companyId || task.createdBy
+              ? "cursor-pointer group/company"
+              : ""
+          }`}
+        >
+          <div className="p-1 bg-[#EDE9FE] text-[#6D3DF5] rounded group-hover/company:bg-[#6D3DF5] group-hover/company:text-white transition-colors">
+            <Building2 size={13} />
           </div>
-          <span className="text-sm font-bold text-gray-700 tracking-tight">
+          <span className="text-xs sm:text-sm font-semibold text-gray-700 tracking-tight group-hover/company:text-[#6D3DF5] transition-colors">
             {task.company}
           </span>
         </div>
 
-        <div className="flex items-center gap-2 mb-6 text-sm text-gray-600 bg-gray-50/50 p-2 rounded-lg">
-          <Briefcase size={16} className="text-orange-500" />
+        {/* Subtle Skill Match Badge (Only on genuinely relevant tasks) */}
+        {task.matchStrength && task.matchStrength !== "none" && task.matchReason && (
+          <div
+            className="inline-flex items-center gap-1.5 mb-2.5 px-2.5 py-1 rounded-lg bg-[#FAF5FF] border border-[#E9D5FF] text-[11px] font-medium text-[#6D3DF5] w-fit max-w-full"
+            title={task.matchReason}
+          >
+            <Sparkles size={12} className="text-[#7C3AED] shrink-0" />
+            <span className="font-bold text-[#6D3DF5] shrink-0">Skill Match:</span>
+            <span className="text-[#475569] font-medium truncate">{task.matchReason}</span>
+          </div>
+        )}
+
+        {/* Role */}
+        <div className="flex items-center gap-2 mb-3 text-xs text-gray-600 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100">
+          <Briefcase size={14} className="text-[#6D3DF5] shrink-0" />
           <span className="truncate">
-            Role:{" "}
-            <span className="text-gray-900 font-semibold">{task.role}</span>
+            Role: <span className="text-gray-900 font-semibold">{task.role || "General"}</span>
           </span>
         </div>
-
-        <div className="flex flex-wrap gap-2 mb-4">
-          {task.tags.map((tag) => (
-            <span
-              key={tag}
-              className="px-2.5 py-1 bg-white border border-gray-100 text-gray-600 text-xs rounded-md font-medium shadow-sm"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        {/* Perks — only shown when the array has at least one item */}
-        {task.perks?.length > 0 && (
-          <div className="flex items-center gap-2 mb-6 text-sm text-gray-600 bg-gray-50/50 p-2 rounded-lg">
-            <span className="font-semibold text-gray-800">Perks:</span>
-            <span className="text-gray-600">{task.perks.join(", ")}</span>
-          </div>
-        )}
-
-        {/* Mentor Shared Resources */}
-        {mentorRequest && (
-          <div className={`mb-6 p-4 rounded-2xl border ${
-            mentorRequest.status === 'accepted' 
-              ? 'bg-green-50/50 border-green-100 shadow-sm' 
-              : mentorRequest.status === 'rejected'
-              ? 'bg-red-50/50 border-red-100'
-              : 'bg-blue-50/50 border-blue-100'
-          }`}>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                Mentorship Status
-              </h4>
-              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                mentorRequest.status === 'accepted'
-                  ? 'bg-green-100 text-green-700 border-green-200'
-                  : mentorRequest.status === 'rejected'
-                  ? 'bg-red-100 text-red-700 border-red-200'
-                  : 'bg-blue-100 text-blue-700 border-blue-200'
-              }`}>
-                {mentorRequest.status === 'accepted' ? <CheckCircle2 size={10} /> : 
-                 mentorRequest.status === 'rejected' ? <XCircle size={10} /> : <Clock size={10} />}
-                {mentorRequest.status}
-              </div>
-            </div>
-
-            {mentorRequest.status === 'accepted' && (
-              <div className="space-y-3">
-                {mentorRequest.meetLink && (
-                  <a
-                    href={mentorRequest.meetLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between p-2.5 bg-white border border-green-100 rounded-xl hover:bg-green-50 transition-all group/link shadow-sm"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-green-100 text-green-600 rounded-lg group-hover/link:bg-green-600 group-hover/link:text-white transition-colors">
-                        <Video size={14} />
-                      </div>
-                      <span className="text-xs font-bold text-gray-700">Meeting Link</span>
-                    </div>
-                    <ExternalLink size={12} className="text-gray-400" />
-                  </a>
-                )}
-
-                {mentorRequest.resources && mentorRequest.resources.length > 0 && (
-                  <div className="space-y-2 pt-1">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Shared Resources</p>
-                    <div className="grid grid-cols-1 gap-2">
-                      {mentorRequest.resources.map((res, i) => (
-                        <a
-                          key={i}
-                          href={res.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-between p-2.5 bg-white border border-gray-100 rounded-xl hover:border-green-200 hover:bg-green-50/30 transition-all group/res"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 bg-gray-100 text-gray-500 rounded-lg group-hover/res:bg-green-100 group-hover/res:text-green-600 transition-colors">
-                              <FileText size={14} />
-                            </div>
-                            <span className="text-xs font-medium text-gray-600 truncate max-w-[120px]">{res.label}</span>
-                          </div>
-                          <ExternalLink size={12} className="text-gray-300" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {mentorRequest.status === 'rejected' && (
-              <p className="text-xs text-red-600 italic">Your request was declined by the mentor.</p>
-            )}
-            
-            {mentorRequest.status === 'pending' && (
-              <p className="text-xs text-blue-600 italic">Waiting for mentor to review your request...</p>
-            )}
-          </div>
-        )}
       </div>
 
-      <div className="border-t border-gray-100 pt-5 mt-auto">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center text-gray-500 text-xs font-medium bg-gray-50 px-2 py-1 rounded">
-            <Calendar size={14} className="mr-1.5 text-orange-400" />
-            <span>Due {task.deadline}</span>
+      {/* Bottom Section */}
+      <div className="border-t border-gray-100 pt-3 mt-auto">
+        {/* Deadline */}
+        <div className="flex items-center justify-between mb-2.5">
+          <div className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded border ${
+            isClosed
+              ? "text-rose-700 bg-rose-50 border-rose-200 font-semibold"
+              : "text-gray-500 bg-gray-50 border-gray-100"
+          }`}>
+            <Calendar size={12} className={`mr-1 ${isClosed ? "text-rose-600" : "text-[#94A3B8]"}`} />
+            <span>{isClosed ? "Deadline Passed: " : ""}Due {task.deadline}</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-3">
+        {/* Action Controls: Instructions & Mentor */}
+        <div className="grid grid-cols-2 gap-2 mb-2">
           <button
-            onClick={() => onOpenInstructions(task)}
-            className="px-3 py-2.5 text-sm font-medium text-orange-600 border border-orange-200 rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-orange-600 hover:text-white hover:border-orange-600"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (typeof onOpenInstructions === "function") {
+                onOpenInstructions(task);
+              } else if (taskId) {
+                navigate(`/tasks/${taskId}`);
+              }
+            }}
+            className={`h-9 px-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 group/btn cursor-pointer shadow-2xs ${
+              isClosed
+                ? "text-slate-700 bg-white border border-slate-200 hover:bg-slate-100"
+                : "text-[#6D3DF5] bg-white border border-[#E9E1FF] hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5]"
+            }`}
           >
             <FileText
-              size={16}
+              size={14}
               className="group-hover/btn:scale-110 transition-transform"
             />
-            Instructions
+            <span>Instructions</span>
           </button>
 
           <button
-            onClick={() => onOpenMentorRequest(task)}
-            className="px-3 py-2.5 text-sm font-medium text-blue-600 border border-blue-200 rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-blue-600 hover:text-white hover:border-blue-600"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (typeof onOpenMentorRequest === "function") {
+                onOpenMentorRequest(task);
+              }
+            }}
+            className={`h-9 px-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 group/btn cursor-pointer shadow-2xs ${
+              isClosed
+                ? "text-slate-700 bg-white border border-slate-200 hover:bg-slate-100"
+                : "text-[#6D3DF5] bg-white border border-[#E9E1FF] hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5]"
+            }`}
           >
             <UserPlus
-              size={16}
+              size={14}
               className="group-hover/btn:scale-110 transition-transform"
             />
-            Mentor
+            <span>Mentor</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3">
-          {isSubmitted ? (
+        {/* Main CTA */}
+        <div className="grid grid-cols-1">
+          {isClosed ? (
+            isSolutionSubmitted ? (
+              <button
+                disabled
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                className="h-9 px-3 text-xs font-bold text-emerald-700 bg-emerald-50 rounded-lg cursor-not-allowed flex items-center justify-center gap-1.5 border border-emerald-200"
+              >
+                <CheckCircle2 size={14} className="text-emerald-600" />
+                <span>Solution Submitted</span>
+              </button>
+            ) : isAccepted ? (
+              <button
+                disabled
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                className="h-9 px-3 text-xs font-semibold text-slate-500 bg-slate-100 rounded-lg cursor-not-allowed flex items-center justify-center gap-1.5 border border-slate-200"
+              >
+                <Lock size={14} className="text-slate-400" />
+                <span>Submission Closed</span>
+              </button>
+            ) : (
+              <button
+                disabled
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                className="h-9 px-3 text-xs font-semibold text-slate-500 bg-slate-100 rounded-lg cursor-not-allowed flex items-center justify-center gap-1.5 border border-slate-200"
+              >
+                <Lock size={14} className="text-slate-400" />
+                <span>Application Closed</span>
+              </button>
+            )
+          ) : isSolutionSubmitted ? (
             <button
               disabled
-              className="px-3 py-2.5 text-sm font-medium text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 border border-gray-200"
+              type="button"
+              onClick={(e) => e.stopPropagation()}
+              className="h-9 px-3 text-xs font-bold text-emerald-700 bg-emerald-50 rounded-lg cursor-not-allowed flex items-center justify-center gap-1.5 border border-emerald-200"
             >
-              <Lock size={16} /> Applied
+              <CheckCircle2 size={14} className="text-emerald-600" />
+              <span>Solution Submitted</span>
             </button>
-          ) : isClosed ? (
+          ) : isAccepted ? (
             <button
-              disabled
-              className="px-3 py-2.5 text-sm font-medium text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 border border-gray-200"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (typeof onOpenSubmitTask === "function") {
+                  onOpenSubmitTask(task);
+                }
+              }}
+              className="h-9 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm shadow-emerald-600/20 hover:shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Lock size={16} /> Closed
+              <FileText size={14} />
+              <span>Submit Task</span>
             </button>
           ) : (
             <button
-              onClick={() => {
-                if (!isClosed) onOpenApply(task);
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (typeof onApplyDirect === "function") {
+                  onApplyDirect(task);
+                }
               }}
-              className="px-3 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 rounded-xl shadow-md shadow-orange-200 flex items-center justify-center gap-2"
+              disabled={isApplying}
+              className="h-9 px-3 text-xs font-bold text-white bg-[#6D3DF5] hover:bg-[#5B2FD6] rounded-lg shadow-sm shadow-[#6D3DF5]/20 hover:shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Apply Now <ChevronRight size={16} />
+              {isApplying ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Applying...</span>
+                </>
+              ) : (
+                <>
+                  <span>Apply Now</span>
+                  <ChevronRight size={14} />
+                </>
+              )}
             </button>
           )}
         </div>

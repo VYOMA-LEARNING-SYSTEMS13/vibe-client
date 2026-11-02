@@ -1,799 +1,1293 @@
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Briefcase,
-  Users,
-  GraduationCap,
-  CheckCircle2,
-  ArrowRight,
-  ShieldCheck,
-  Zap,
-  BrainCircuit,
-  Rocket,
-  ChevronDown,
-  Code,
-  MessageSquare,
-  Award,
-  Clock,
-  Star,
-  TrendingUp,
-  CheckCircle,
-  UserCheck,
-  Sparkles,
-} from "lucide-react";
-import Button from "../components/Button";
-import GlassCard from "../components/GlassCard";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { motion, useInView } from "framer-motion";
+import {
+  ArrowRight,
+  GraduationCap,
+  Users,
+  Briefcase,
+  Building2,
+  CheckCircle2,
+  ShieldCheck,
+  Star,
+  Flame,
+  MessageSquare,
+  Zap,
+  UserCheck,
+  FileText,
+  Calendar,
+  ThumbsUp,
+  Share2,
+  Clock,
+  MapPin,
+  Lock,
+  ExternalLink,
+  Award,
+  BookOpen,
+  ChevronRight,
+  Code,
+  Check,
+  QrCode,
+  Copy,
+  FolderGit2,
+} from "lucide-react";
+import {
+  SparkDoodle,
+  LoopDoodle,
+  SpiralDoodle,
+  StarDoodle,
+} from "../components/public/Doodles";
 
-const TypewriterHeadline = () => {
-  const words = ["Verified Internships.", "Real Tasks.", "Real Careers."];
-  const [index, setIndex] = useState(0);
-  const [subIndex, setSubIndex] = useState(0);
-  const [reverse, setReverse] = useState(false);
+// ─────────────────────────────────────────────────────────────────────────────
+// ANIMATED COUNT-UP NUMBER (ClassDojo style viewport trigger)
+// ─────────────────────────────────────────────────────────────────────────────
+const CountUpNumber = ({ target, suffix = "", duration = 1.6 }) => {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-40px" });
 
-  // Typewriter effect logic
   useEffect(() => {
-    if (subIndex === words[index].length + 1 && !reverse) {
-      setTimeout(() => setReverse(true), 2000); // Pause at end of word
-      return;
-    }
+    if (!isInView) return;
 
-    if (subIndex === 0 && reverse) {
-      setReverse(false);
-      setIndex((prev) => (prev + 1) % words.length);
-      return;
-    }
+    let startTime = null;
+    let animationFrame;
 
-    const timeout = setTimeout(
-      () => {
-        setSubIndex((prev) => prev + (reverse ? -1 : 1));
-      },
-      reverse ? 50 : 100,
-    );
+    const step = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
+      // Smooth ease-out cubic curve
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(easedProgress * target));
 
-    return () => clearTimeout(timeout);
-  }, [subIndex, index, reverse]);
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(step);
+      } else {
+        setCount(target);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [isInView, target, duration]);
 
   return (
-    <span className="text-[#FF6B00] min-h-[1.1em] inline-block">
-      {words[index].substring(0, subIndex)}
-      <span className="animate-pulse border-r-4 border-[#FF6B00] ml-1">
-        &nbsp;
-      </span>
+    <span ref={ref} className="tabular-nums font-black">
+      {count.toLocaleString()}
+      {suffix}
     </span>
   );
 };
 
-const Home = () => {
-  return (
-    <div className="pt-20">
-      {/* Hero Section */}
-      <section
-        id="hero"
-        className="relative min-h-[90vh] flex items-center overflow-hidden px-4 sm:px-6 lg:px-8"
+// ─────────────────────────────────────────────────────────────────────────────
+// REUSABLE ROLE BADGE (ClassDojo friendly role selector)
+// ─────────────────────────────────────────────────────────────────────────────
+const RoleBadge = ({ role, label, icon, path, isSelected, onSelect }) => (
+  <button
+    type="button"
+    onClick={() => onSelect(role)}
+    className={`group min-h-[48px] px-5 py-3 rounded-2xl flex items-center gap-3 transition-all duration-200 text-left border ${
+      isSelected
+        ? "bg-white border-[#7540F5] shadow-[0_8px_24px_rgba(117,64,245,0.14)] -translate-y-0.5"
+        : "bg-white/90 hover:bg-white border-slate-200/90 hover:border-[#7540F5]/50 hover:shadow-md hover:-translate-y-0.5"
+    }`}
+  >
+    <div
+      className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+        isSelected
+          ? "bg-[#F5F1FF] text-[#7540F5] scale-105"
+          : "bg-slate-50 text-[#5A6482] group-hover:bg-[#F5F1FF] group-hover:text-[#7540F5]"
+      }`}
+    >
+      {icon}
+    </div>
+    <div className="min-w-0">
+      <span
+        className={`block text-sm font-bold leading-tight ${
+          isSelected
+            ? "text-[#111B5E]"
+            : "text-[#111B5E] group-hover:text-[#7540F5]"
+        }`}
       >
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#FF6B00]/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2" />
+        {role}
+      </span>
+      <span className="block text-[11px] text-[#5A6482] font-medium leading-tight truncate">
+        {label}
+      </span>
+    </div>
+  </button>
+);
 
-        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-20 items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            className="w-full"
-          >
-            <div className="inline-flex items-center space-x-2 px-3 py-1 bg-[#FF6B00]/10 border border-[#FF6B00]/20 rounded-full text-sm font-semibold text-[#FF6B00] mb-6">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF6B00] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF6B00]"></span>
-              </span>
-              <span>Next Gen Internship Platform</span>
-            </div>
-
-            <h1 className="text-3xl sm:text-5xl md:text-7xl font-extrabold text-slate-900 leading-[1.1] mb-6 flex flex-col">
-              <span className="text-slate-400 text-xl sm:text-3xl md:text-4xl font-bold mb-2 uppercase tracking-tight">
-                Focusing on
-              </span>
-              <TypewriterHeadline />
-            </h1>
-
-            <p className="text-lg sm:text-xl text-slate-600 mb-10 max-w-lg leading-relaxed">
-              VIBE connects students, verified industries, and faculty mentors
-              through real-world tasks that lead to guaranteed internship
-              opportunities.
-            </p>
-
-            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6">
-              <Link to="/signup">
-                <Button size="lg" className="w-full sm:w-auto">
-                  Join VIBE <ArrowRight className="ml-2" size={20} />
-                </Button>
-              </Link>
-              <a
-                href="#roles"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document
-                    .getElementById("roles")
-                    ?.scrollIntoView({ behavior: "smooth" });
-                }}
-              >
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  className="w-full sm:w-auto"
-                >
-                  Explore Roles
-                </Button>
-              </a>
-            </div>
-          </motion.div>
-
-          {/* Enhanced Professional Visual - Hidden on mobile */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1 }}
-            className="hidden md:flex relative h-[400px] sm:h-[500px] lg:h-[600px] items-center justify-center"
-          >
-            <div className="relative w-full max-w-[300px] sm:max-w-[400px] lg:max-w-[500px]">
-              {/* Back Decorative Layer */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-[#FF6B00]/5 to-blue-500/5 rounded-full blur-[80px]" />
-
-              {/* Main Dashboard Card */}
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{
-                  duration: 6,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="relative bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-2xl z-10 overflow-hidden"
-              >
-                <div className="flex items-center justify-between mb-6 sm:mb-8">
-                  <div className="flex space-x-1.5">
-                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-slate-200" />
-                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-slate-200" />
-                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-slate-200" />
-                  </div>
-                  <div className="text-[10px] sm:text-xs font-semibold text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
-                    Active Session: 42m
-                  </div>
-                </div>
-
-                <div className="space-y-4 sm:space-y-6">
-                  <div className="p-3 sm:p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-2 sm:space-x-3">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-lg flex items-center justify-center border border-slate-100 shadow-sm">
-                          <Code
-                            size={16}
-                            className="text-[#FF6B00] sm:w-5 sm:h-5"
-                          />
-                        </div>
-                        <div>
-                          <p className="text-xs sm:text-sm font-bold text-slate-900">
-                            Task: AI Pipeline
-                          </p>
-                          <p className="text-[8px] sm:text-[10px] text-slate-500">
-                            TechCorp Global • Level 4
-                          </p>
-                        </div>
-                      </div>
-                      <div className="px-1.5 sm:px-2 py-0.5 bg-green-100 text-green-700 text-[8px] sm:text-[10px] font-bold rounded-full">
-                        VERIFIED
-                      </div>
-                    </div>
-                    <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: "75%" }}
-                        transition={{ duration: 2, delay: 1 }}
-                        className="h-full bg-[#FF6B00]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                    <div className="p-2 sm:p-3 bg-blue-50 rounded-xl border border-blue-100">
-                      <div className="flex items-center space-x-1 sm:space-x-2 text-blue-600 mb-2">
-                        <Users size={12} className="sm:w-3.5 sm:h-3.5" />
-                        <span className="text-[8px] sm:text-[10px] font-bold">
-                          MENTORSHIP
-                        </span>
-                      </div>
-                      <p className="text-[9px] sm:text-[11px] text-slate-700 leading-tight">
-                        "Logic looks solid. Try optimizing the API call."
-                      </p>
-                    </div>
-                    <div className="p-2 sm:p-3 bg-orange-50 rounded-xl border border-orange-100">
-                      <div className="flex items-center space-x-1 sm:space-x-2 text-[#FF6B00] mb-2">
-                        <Clock size={12} className="sm:w-3.5 sm:h-3.5" />
-                        <span className="text-[8px] sm:text-[10px] font-bold">
-                          DEADLINE
-                        </span>
-                      </div>
-                      <p className="text-xs sm:text-sm font-black text-slate-900">
-                        2d : 14h
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Floating Success Notification */}
-              <motion.div
-                initial={{ x: 50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.8 }}
-                className="absolute -right-4 sm:-right-8 top-1/2 bg-white border border-slate-200 rounded-2xl p-3 sm:p-4 shadow-xl z-20 max-w-[150px] sm:max-w-[200px]"
-              >
-                <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-green-200">
-                    <Award size={14} className="sm:w-4 sm:h-4" />
-                  </div>
-                  <span className="text-[10px] sm:text-xs font-bold text-slate-900">
-                    Achievement!
-                  </span>
-                </div>
-                <p className="text-[8px] sm:text-[10px] text-slate-500">
-                  Task Completed: System Architecture Review
-                </p>
-              </motion.div>
-
-              {/* Floating Industry Match */}
-              <motion.div
-                initial={{ x: -50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.8, duration: 0.8 }}
-                className="absolute -left-6 sm:-left-12 bottom-8 sm:bottom-12 bg-white rounded-2xl p-3 sm:p-5 shadow-2xl z-20 text-gray-800 min-w-[160px] sm:min-w-[220px] border border-gray-100"
-              >
-                <div className="flex items-center justify-between mb-3 sm:mb-4">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <Briefcase
-                      size={12}
-                      className="text-[#FF6B00] sm:w-4 sm:h-4"
-                    />
-                  </div>
-                  <div className="h-1 sm:h-1.5 w-8 sm:w-12 bg-gray-200 rounded-full" />
-                </div>
-                <h4 className="text-[10px] sm:text-xs font-bold mb-1 text-[#FF6B00]">
-                  Internship Offer
-                </h4>
-                <p className="text-[8px] sm:text-[10px] text-gray-500 mb-2 sm:mb-3">
-                  TechCorp Engineering Division
-                </p>
-                <div className="flex items-center space-x-1">
-                  <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-[7px] sm:text-[9px] font-medium text-green-500 uppercase tracking-widest">
-                    Ready to accept
-                  </span>
-                </div>
-              </motion.div>
-            </div>
-          </motion.div>
+// ─────────────────────────────────────────────────────────────────────────────
+// REUSABLE FEATURE ROW (Alternating storytelling row)
+// ─────────────────────────────────────────────────────────────────────────────
+const FeatureRow = ({
+  reversed = false,
+  tag,
+  title,
+  emoji,
+  description,
+  bullets = [],
+  ctaText,
+  ctaPath,
+  mockup,
+}) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      className={`flex flex-col ${
+        reversed ? "md:flex-row-reverse" : "md:flex-row"
+      } items-center gap-8 lg:gap-12 py-3 sm:py-5`}
+    >
+      {/* Left/Right Text Column */}
+      <div className="flex-1 space-y-5 text-left max-w-xl">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#F5F1FF] border border-[#E9E1FF] text-[#7540F5] text-xs font-black uppercase tracking-wider">
+          <span>{emoji}</span>
+          <span>{tag}</span>
         </div>
+
+        <h3 className="text-2xl sm:text-3xl lg:text-[34px] font-black tracking-tight text-[#111B5E] leading-tight">
+          {title}
+        </h3>
+
+        <p className="text-base sm:text-lg text-[#5A6482] font-normal leading-relaxed">
+          {description}
+        </p>
+
+        {bullets.length > 0 && (
+          <ul className="space-y-2.5 pt-1">
+            {bullets.map((item, idx) => (
+              <li
+                key={idx}
+                className="flex items-start gap-2.5 text-sm sm:text-base text-[#111B5E] font-medium"
+              >
+                <div className="w-5 h-5 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check size={13} strokeWidth={3} />
+                </div>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="pt-2">
+          <Link
+            to={ctaPath}
+            className="inline-flex items-center gap-2 text-sm font-bold text-[#7540F5] hover:text-[#6025EB] hover:underline underline-offset-4 group transition-colors"
+          >
+            <span>{ctaText}</span>
+            <ArrowRight
+              size={16}
+              className="group-hover:translate-x-1 transition-transform"
+            />
+          </Link>
+        </div>
+      </div>
+
+      {/* Left/Right Interactive Mockup Surface */}
+      <div className="flex-1 w-full max-w-lg">{mockup}</div>
+    </motion.div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REUSABLE TESTIMONIAL CARD (ClassDojo Wall of Love style)
+// ─────────────────────────────────────────────────────────────────────────────
+const TestimonialCard = ({
+  name,
+  role,
+  institution,
+  avatar,
+  quote,
+  verified = true,
+  rating = 5,
+  tag,
+  isDuplicate = false,
+}) => (
+  <div
+    aria-hidden={isDuplicate ? "true" : undefined}
+    tabIndex={isDuplicate ? -1 : undefined}
+    className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_4px_20px_rgba(17,27,94,0.04)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.08)] hover:border-[#7540F5]/40 transition-all duration-300 flex flex-col justify-between h-full select-none group"
+  >
+    <div>
+      {/* Top Stars & Badge */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-1 text-[#FBBF24]">
+          {Array.from({ length: rating }).map((_, i) => (
+            <Star key={i} size={15} className="fill-current" />
+          ))}
+        </div>
+        {tag && (
+          <span className="px-2.5 py-0.5 rounded-full bg-[#F5F1FF] text-[#7540F5] text-[11px] font-bold">
+            {tag}
+          </span>
+        )}
+      </div>
+
+      {/* Quote */}
+      <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-normal mb-6">
+        "{quote}"
+      </p>
+    </div>
+
+    {/* Author Info */}
+    <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
+      <img
+        src={avatar}
+        alt={isDuplicate ? "" : name}
+        className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-xs group-hover:scale-105 transition-transform"
+      />
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5">
+          <h4 className="text-sm font-bold text-[#111B5E] truncate">{name}</h4>
+          {verified && (
+            <ShieldCheck
+              size={14}
+              className="text-[#16A34A] flex-shrink-0"
+              title={isDuplicate ? undefined : "Verified VIBE Member"}
+            />
+          )}
+        </div>
+        <p className="text-xs text-[#5A6482] truncate">
+          {role} • {institution}
+        </p>
+      </div>
+    </div>
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN HOME PAGE COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
+const Home = () => {
+  // Selected role state for hero quick-routing
+  const [selectedRole, setSelectedRole] = useState("Student");
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Role routing map (Student and Mentor)
+  const rolePathMap = {
+    Student: "/signup/student",
+    Mentor: "/signup/faculty",
+  };
+
+  const handleCopyPublicCV = () => {
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2200);
+  };
+
+  /* PLACEHOLDER DATA: Auto-scrolling community members strip (ClassDojo style) */
+  const communityMembers = [
+    {
+      name: "Aarav Sharma",
+      role: "Computer Science @ IIT Bombay",
+      type: "Student",
+      avatar:
+        "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&h=200&fit=crop&crop=faces",
+      tag: "3 Tasks Solved",
+      highlight: "Internship Secured",
+      badgeBg: "bg-[#EDF7FF] text-[#2F6DB5]",
+    },
+    {
+      name: "Dr. Ananya Rao",
+      role: "AI & ML Professor @ BITS Pilani",
+      type: "Faculty Mentor",
+      avatar:
+        "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop&crop=faces",
+      tag: "Verified Guide",
+      highlight: "48 Students Mentored",
+      badgeBg: "bg-[#F5F1FF] text-[#7540F5]",
+    },
+    {
+      name: "Priya Nair",
+      role: "Staff Engineer @ CloudScale",
+      type: "Industry Partner",
+      avatar:
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces",
+      tag: "Hiring Lead",
+      highlight: "Posted 8 Tasks",
+      badgeBg: "bg-[#FEF3C7] text-[#D97706]",
+    },
+    {
+      name: "Kabir Patel",
+      role: "Full-Stack Dev @ NIT Trichy",
+      type: "Student",
+      avatar:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=faces",
+      tag: "Virtual CV Active",
+      highlight: "Top 5% Solver",
+      badgeBg: "bg-[#DCFCE7] text-[#16A34A]",
+    },
+    {
+      name: "Prof. Rajesh Verma",
+      role: "Dean of Innovation @ DTU",
+      type: "Partner College",
+      avatar:
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop&crop=faces",
+      tag: "Campus Lead",
+      highlight: "Placement Partner",
+      badgeBg: "bg-[#FCE7F3] text-[#DB2777]",
+    },
+    {
+      name: "Aditi Sen",
+      role: "Talent Partner @ FinTech Labs",
+      type: "Company Recruiter",
+      avatar:
+        "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=faces",
+      tag: "Verified Recruiter",
+      highlight: "12 Interns Hired",
+      badgeBg: "bg-[#EDE9FE] text-[#7C3AED]",
+    },
+  ];
+
+  /* PLACEHOLDER DATA: Real VIBE Community Testimonials (Wall of Love) */
+  const testimonials = [
+    {
+      name: "Arjun Nair",
+      role: "CS Junior",
+      institution: "IIT Delhi",
+      avatar:
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&h=160&fit=crop&crop=faces",
+      quote:
+        "Task Mania completely changed my internship search. Instead of sending 50 cold resumes, I completed one real micro-task posted by CloudScale and landed an interview within 48 hours!",
+      tag: "Hired via Task Mania",
+    },
+    {
+      name: "Dr. Shalini Gupta",
+      role: "Associate Professor",
+      institution: "BITS Pilani",
+      avatar:
+        "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&h=160&fit=crop&crop=faces",
+      quote:
+        "VIBE provides a structured, transparent way to mentor students beyond regular lectures. Guiding ambitious students on verifiable industry problems has been deeply rewarding.",
+      tag: "Faculty Mentor",
+    },
+    {
+      name: "Vikramaditya Bose",
+      role: "VP of Engineering",
+      institution: "PayScale Labs",
+      avatar:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=faces",
+      quote:
+        "We hired two interns through VIBE this summer. Having tangible proof-of-work and cryptographic verification in their Virtual CV eliminated resume speculation entirely.",
+      tag: "Hiring Partner",
+    },
+    {
+      name: "Rhea Sen",
+      role: "ECE Senior",
+      institution: "VIT Vellore",
+      avatar:
+        "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=160&h=160&fit=crop&crop=faces",
+      quote:
+        "The Virtual CV feature is pure gold. My projects, peer endorsements, and mentor reviews are consolidated into a live, shareable link that recruiters actually respect.",
+      tag: "Student",
+    },
+    {
+      name: "Prof. K. Venkatesh",
+      role: "Director of Placements",
+      institution: "SRM University",
+      avatar:
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&h=160&fit=crop&crop=faces",
+      quote:
+        "VIBE gives our institution verified analytics on student competencies and corporate engagement. It bridges the critical gap between campus curriculum and real job demands.",
+      tag: "Partner College",
+    },
+    {
+      name: "Tanmay Joshi",
+      role: "Graduate Fellow",
+      institution: "IISc Bangalore",
+      avatar:
+        "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=160&h=160&fit=crop&crop=faces",
+      quote:
+        "Finding an accredited mentor who genuinely reviews system designs and code quality seemed impossible. On VIBE, I booked weekly sessions that accelerated my master's project.",
+      tag: "Mentorship",
+    },
+  ];
+
+  return (
+    <div className="roboto-bold min-h-screen bg-white text-[#111B5E] pt-14 md:pt-20 overflow-x-hidden selection:bg-[#7540F5] selection:text-white">
+      {/* ======================================================== */}
+      {/* 1. HERO SECTION                                         */}
+      {/* ======================================================== */}
+      <section className="relative pt-4 sm:pt-8 md:pt-12 pb-14 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
+        {/* Floating Doodles around Hero */}
+        <div className="absolute top-8 left-6 hidden sm:block pointer-events-none vibe-doodle-float-1">
+          <SparkDoodle color="#FBBF24" size={32} />
+        </div>
+        <div className="absolute top-10 right-10 hidden sm:block pointer-events-none vibe-doodle-float-2">
+          <LoopDoodle color="#F472B6" size={36} />
+        </div>
+        <div className="absolute bottom-24 left-10 hidden md:block pointer-events-none vibe-doodle-float-2">
+          <SpiralDoodle color="#7540F5" size={28} />
+        </div>
+        <div className="absolute top-44 right-16 hidden lg:block pointer-events-none vibe-doodle-float-1">
+          <StarDoodle color="#38BDF8" size={24} />
+        </div>
+
+        {/* Eyebrow Trust Line */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#EDF7FF] border border-[#D3E3EE] text-[#2F6DB5] text-xs font-bold uppercase tracking-wider mb-3.5 md:mb-6"
+        >
+          <ShieldCheck size={14} className="text-[#16A34A]" />
+          <span>Verified Opportunities • Free for Students</span>
+        </motion.div>
+
+        {/* Main Headline (Friendly, bold, ClassDojo style) */}
+        <motion.h1
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+          className="text-4xl sm:text-5xl md:text-6xl lg:text-[66px] font-black tracking-tight leading-[1.14] text-[#111B5E] max-w-5xl mx-auto"
+        >
+          Turn student ambition into{" "}
+          <motion.span
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.25, ease: "easeOut" }}
+            className="bg-gradient-to-r from-[#2563EB] via-[#7540F5] to-[#6366F1] bg-clip-text text-transparent inline-block"
+          >
+            verified careers
+          </motion.span>{" "}
+          that top companies{" "}
+          <span className="relative inline-block text-[#7540F5]">
+            <motion.span
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="inline-block"
+            >
+              trust
+            </motion.span>
+            <span className="absolute -bottom-2.5 left-0 w-full pointer-events-none vibe-landing-underline">
+              <svg
+                className="w-full h-3 md:h-4 overflow-visible"
+                viewBox="0 0 200 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <motion.path
+                  d="M3 11C45 4 155 3 197 9C165 14 60 15 15 13"
+                  stroke="#FBBF24"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 1 }}
+                  transition={{ duration: 0.85, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                />
+              </svg>
+            </span>
+            <motion.span
+              initial={{ scale: 0, rotate: -25, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              transition={{
+                type: "spring",
+                stiffness: 320,
+                damping: 16,
+                delay: 0.85,
+              }}
+              className="absolute -top-3 -right-6 hidden sm:inline-block pointer-events-none text-[#FBBF24]"
+            />
+          </span>
+        </motion.h1>
+
+        {/* Short Subline */}
+        <motion.p
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-6 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed"
+        >
+          Connect directly with certified faculty mentors, solve real-world industry tasks, and build an authenticated Virtual CV that unlocks genuine career doors.
+        </motion.p>
+
+        {/* "Get started as a..." Row of Rounded Role Badges (ClassDojo style) */}
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="mt-10 max-w-xl mx-auto"
+        >
+          <p className="text-xs font-bold uppercase tracking-wider text-[#5A6482] mb-3.5">
+            Get started as a...
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-md mx-auto">
+            <RoleBadge
+              role="Student"
+              label="Tasks & Mentors"
+              icon={<GraduationCap size={19} />}
+              path="/signup/student"
+              isSelected={selectedRole === "Student"}
+              onSelect={setSelectedRole}
+            />
+            <RoleBadge
+              role="Mentor"
+              label="Guide Cohorts"
+              icon={<Users size={19} />}
+              path="/signup/faculty"
+              isSelected={selectedRole === "Mentor"}
+              onSelect={setSelectedRole}
+            />
+          </div>
+        </motion.div>
+
+        {/* Main "Sign up" CTA Button with dynamic role link */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4"
+        >
+          <Link
+            to={rolePathMap[selectedRole] || "/signup"}
+            className="w-full sm:w-auto min-h-[48px] px-8 py-3.5 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-[0_8px_24px_rgba(117,64,245,0.28)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.36)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2 group"
+          >
+            <span>Sign up as {selectedRole}</span>
+            <ArrowRight
+              size={18}
+              className="group-hover:translate-x-1 transition-transform"
+            />
+          </Link>
+
+          <Link
+            to="/how-it-works"
+            className="w-full sm:w-auto min-h-[48px] px-6 py-3.5 rounded-full text-base font-bold text-[#111B5E] bg-white border border-slate-200 hover:border-[#7540F5] hover:text-[#7540F5] transition-all flex items-center justify-center gap-1.5"
+          >
+            <span>How it works</span>
+          </Link>
+        </motion.div>
+
+        {/* Trust Proof Micro-Banner */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#5A6482]"
+        >
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 size={14} className="text-[#16A34A]" /> Institutional Domain Vetted
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 size={14} className="text-[#16A34A]" /> Zero Cold Resumes
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 size={14} className="text-[#16A34A]" /> 100% Free for Students
+          </span>
+        </motion.div>
       </section>
 
-      {/* How it Works */}
-      <section id="how-it-works" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-slate-900">
-              How VIBE Works
-            </h2>
-            <p className="text-slate-600 max-w-2xl mx-auto">
-              The bridge between learning and leading in the professional world.
-            </p>
-          </div>
+      {/* ======================================================== */}
+      {/* 2. AUTO-SCROLLING COMMUNITY CAROUSEL STRIP (ClassDojo)   */}
+      {/* ======================================================== */}
+      <section className="relative py-6 bg-[#F8FAFF] border-y border-slate-100 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 mb-4 text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#5A6482]">
+            Active Students, Mentors & Recruiter Teams
+          </span>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              {
-                icon: <Zap />,
-                title: "Industries Upload Tasks",
-                desc: "Real business problems waiting for solutions.",
-              },
-              {
-                icon: <Rocket />,
-                title: "Students Apply & Build",
-                desc: "Showcase skills by solving the task at hand.",
-              },
-              {
-                icon: <BrainCircuit />,
-                title: "Faculty Mentors Guide",
-                desc: "Expert guidance throughout the task lifecycle.",
-              },
-              {
-                icon: <ShieldCheck />,
-                title: "Get Verified Offers",
-                desc: "Successful completion leads to direct offers.",
-              },
-            ].map((step, idx) => (
-              <div key={idx} className="h-full">
-                <GlassCard className="h-80 flex flex-col">
-                  <div className="flex flex-col h-full relative">
-                    <div className="w-14 h-14 bg-[#FF6B00]/10 rounded-2xl flex items-center justify-center mb-6 text-[#FF6B00] flex-shrink-0">
-                      {step.icon}
-                    </div>
-                    <div className="flex-1 flex flex-col pb-16">
-                      <h3 className="text-xl font-bold mb-3 text-slate-900 leading-tight">
-                        {step.title}
-                      </h3>
-                      <p className="text-slate-600 leading-relaxed">
-                        {step.desc}
-                      </p>
-                    </div>
-                    <div className="text-6xl font-black text-slate-100 absolute -bottom-2 -right-2">
-                      0{idx + 1}
-                    </div>
+        {/* Infinite Marquee Track */}
+        <div className="relative w-full overflow-hidden">
+          <div className="animate-vibe-marquee py-2 flex items-center gap-4">
+            {/* Double the list for seamless continuous infinite scrolling */}
+            {[...communityMembers, ...communityMembers].map((member, idx) => (
+              <div
+                key={idx}
+                className="w-72 sm:w-80 flex-shrink-0 bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs hover:shadow-md hover:border-[#7540F5]/40 transition-all flex items-center gap-3.5 select-none"
+              >
+                <img
+                  src={member.avatar}
+                  alt={member.name}
+                  className="w-12 h-12 rounded-xl object-cover border border-slate-100 flex-shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-[#111B5E] truncate">
+                      {member.name}
+                    </p>
+                    <ShieldCheck
+                      size={13}
+                      className="text-[#16A34A] flex-shrink-0"
+                    />
                   </div>
-                </GlassCard>
+                  <p className="text-xs text-[#5A6482] truncate">
+                    {member.role}
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${member.badgeBg}`}
+                    >
+                      {member.tag}
+                    </span>
+                    <span className="text-[10px] text-[#5A6482] font-medium truncate">
+                      {member.highlight}
+                    </span>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Why VIBE Section */}
-      <section id="features" className="py-24 bg-[#FAFAFA]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <h2 className="text-4xl font-bold mb-8 text-slate-900">
-                Why Choose VIBE?
-              </h2>
-              <div className="space-y-6">
-                {[
-                  {
-                    title: "Verified Industries Only",
-                    desc: "We vet every partner to ensure quality and legitimacy.",
-                  },
-                  {
-                    title: "Mentorship While You Build",
-                    desc: "Don't just work, grow with guidance from expert faculty.",
-                  },
-                  {
-                    title: "Skill-Based Selection",
-                    desc: "Resumes tell stories, tasks show truth. We value your work.",
-                  },
-                  {
-                    title: "Outcome-Driven",
-                    desc: "The end goal is a meaningful internship or job offer.",
-                  },
-                ].map((item, idx) => (
-                  <div key={idx} className="flex space-x-4">
-                    <div className="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-[#FF6B00]/10 flex items-center justify-center text-[#FF6B00]">
-                      <CheckCircle2 size={16} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-lg">
-                        {item.title}
-                      </h4>
-                      <p className="text-slate-600">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
+      {/* ======================================================== */}
+      {/* 3. SECTION HEADING & ANIMATED STAT COUNTER              */}
+      {/* ======================================================== */}
+      <section className="pt-16 pb-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="w-12 h-12 rounded-2xl bg-[#F5F1FF] text-[#7540F5] flex items-center justify-center mx-auto mb-4 shadow-xs">
+            <Users size={24} />
+          </div>
+
+          <h2 className="text-3xl sm:text-4xl md:text-[42px] font-black tracking-tight text-[#111B5E] leading-tight">
+            Keeping students, mentors and companies connected
+          </h2>
+
+          <p className="mt-3.5 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed">
+            From first-year technical exploration to verified corporate placement — VIBE gives every participant transparent, certified tools for growth.
+          </p>
+
+          {/* Animated Stat Counters (Viewport triggered) */}
+          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs text-left hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-[#EDF7FF] text-[#2F6DB5] flex items-center justify-center mb-3">
+                <GraduationCap size={20} />
               </div>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#111B5E]">
+                <CountUpNumber target={15000} suffix="+" />
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A6482] font-semibold mt-1">
+                Verified Students
+              </p>
             </div>
 
-            {/* ILLUSTRATIVE CONTENT FOR WHY VIBE - Hidden on mobile */}
-            <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8 lg:mt-0">
-              <div className="space-y-4 sm:pt-8">
-                {/* MENTORSHIP CARD */}
-                <motion.div className="h-48 sm:h-64 bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col justify-between relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-3 sm:p-4">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  </div>
-                  <div className="space-y-3 sm:space-y-4 relative z-10">
-                    <div className="flex items-center space-x-2 sm:space-x-3">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                        <BrainCircuit size={16} className="sm:w-5 sm:h-5" />
-                      </div>
-                      <span className="text-[8px] sm:text-[10px] font-black tracking-widest uppercase text-slate-400">
-                        Live Mentorship
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2 sm:space-x-3">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-200 border-2 border-white" />
-                      <div>
-                        <p className="text-[10px] sm:text-xs font-bold text-slate-900">
-                          Dr. Sarah Chen
-                        </p>
-                        <p className="text-[8px] sm:text-[10px] text-slate-500">
-                          Stanford AI Lab
-                        </p>
-                      </div>
-                    </div>
-                    <div className="p-2 sm:p-3 bg-slate-50 rounded-2xl border border-slate-100 text-[9px] sm:text-[11px] text-slate-600 leading-relaxed italic">
-                      "Your neural network architecture is excellent. Let's
-                      focus on the data preprocessing step next."
-                    </div>
-                  </div>
-                  <div className="flex justify-end relative z-10">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 sm:h-8 px-2 sm:px-3 text-[8px] sm:text-[10px] font-black uppercase"
-                    >
-                      Message
-                    </Button>
-                  </div>
-                  <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all" />
-                </motion.div>
-
-                {/* VERIFIED STATUS CARD */}
-                <motion.div className="h-32 sm:h-48 bg-[#FF6B00]/5 border border-[#FF6B00]/10 rounded-3xl p-4 sm:p-6 flex flex-col items-center justify-center text-center space-y-2 sm:space-y-3">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#FF6B00] rounded-full flex items-center justify-center text-white shadow-lg shadow-[#FF6B00]/20">
-                    <UserCheck size={20} className="sm:w-6 sm:h-6" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs sm:text-sm font-bold text-slate-900">
-                      100% Verified
-                    </h4>
-                    <p className="text-[8px] sm:text-[10px] text-slate-500 max-w-[120px] mx-auto">
-                      All industries are manually vetted by VIBE Security.
-                    </p>
-                  </div>
-                </motion.div>
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs text-left hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-[#F5F1FF] text-[#7540F5] flex items-center justify-center mb-3">
+                <Users size={20} />
               </div>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#111B5E]">
+                <CountUpNumber target={1200} suffix="+" />
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A6482] font-semibold mt-1">
+                Faculty Mentors
+              </p>
+            </div>
 
-              <div className="space-y-4">
-                {/* ANALYTICS / PROGRESS CARD */}
-                <motion.div className="h-32 sm:h-48 bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm">
-                  <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-orange-50 rounded-lg flex items-center justify-center text-[#FF6B00]">
-                      <TrendingUp size={12} className="sm:w-4 sm:h-4" />
-                    </div>
-                    <span className="text-[8px] sm:text-[10px] font-bold text-green-500 bg-green-50 px-1.5 sm:px-2 py-0.5 rounded-full">
-                      +12% Skill growth
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs text-left hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-[#FEF3C7] text-[#D97706] flex items-center justify-center mb-3">
+                <Briefcase size={20} />
+              </div>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#111B5E]">
+                <CountUpNumber target={450} suffix="+" />
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A6482] font-semibold mt-1">
+                Industry Partners
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs text-left hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center mb-3">
+                <Award size={20} />
+              </div>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#111B5E]">
+                <CountUpNumber target={98} suffix="%" />
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A6482] font-semibold mt-1">
+                Verified Completion
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ======================================================== */}
+      {/* 4. ALTERNATING FEATURE ROWS (5 VIBE MODULES)             */}
+      {/* ======================================================== */}
+      <section className="pt-2 pb-8 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-6 sm:space-y-10">
+        {/* ──────────────────────────────────────────────────────── */}
+        {/* ROW 1: Community Posts (💬)                             */}
+        {/* ──────────────────────────────────────────────────────── */}
+        <FeatureRow
+          tag="Community Module"
+          title="Community Posts"
+          emoji="💬"
+          description="Engage in peer-driven campus discussions, share technical breakthroughs, and get instant guidance from your collegiate network."
+          bullets={[
+            "Post ideas, research findings, and technical dilemmas",
+            "Give and receive positive vibes and peer endorsements",
+            "Filter discussions by interest circles and university tags",
+          ]}
+          ctaText="Explore Community Feed"
+          ctaPath="/signup"
+          mockup={
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_10px_30px_rgba(17,27,94,0.06)] space-y-4">
+              <div className="flex items-center gap-3">
+                <img
+                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces"
+                  alt="Rohan Mehta"
+                  className="w-11 h-11 rounded-full object-cover border border-slate-100"
+                />
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="text-sm font-bold text-[#111B5E]">
+                      Rohan Mehta
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full bg-[#EDF7FF] text-[#2F6DB5] text-[10px] font-bold">
+                      IIT Delhi
                     </span>
                   </div>
-                  <div className="space-y-2 sm:space-y-3">
-                    <p className="text-[10px] sm:text-xs font-bold text-slate-900">
-                      Career Readiness
+                  <p className="text-xs text-[#5A6482]">2 hours ago • Public Circle</p>
+                </div>
+              </div>
+
+              <p className="text-sm text-slate-800 leading-relaxed font-normal">
+                Built an open-source task scheduling visualizer using React & Web Workers! Looking for feedback on latency benchmarks. 🚀
+              </p>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <span className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs font-semibold text-[#5A6482]">
+                  #ReactJS
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs font-semibold text-[#5A6482]">
+                  #WebWorkers
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs font-semibold text-[#5A6482]">
+                  #OpenSource
+                </span>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-[#5A6482] font-semibold">
+                <span className="flex items-center gap-1.5 text-[#7540F5] bg-[#F5F1FF] px-3 py-1.5 rounded-full">
+                  <ThumbsUp size={14} /> 148 vibes
+                </span>
+                <span className="flex items-center gap-1.5 hover:text-[#111B5E]">
+                  <MessageSquare size={14} /> 32 replies
+                </span>
+                <span className="flex items-center gap-1.5 hover:text-[#111B5E]">
+                  <Share2 size={14} /> Share
+                </span>
+              </div>
+            </div>
+          }
+        />
+
+        {/* ──────────────────────────────────────────────────────── */}
+        {/* ROW 2: TaskMania (⚡)                                    */}
+        {/* ──────────────────────────────────────────────────────── */}
+        <FeatureRow
+          reversed
+          tag="Practical Tasks"
+          title="Task Mania"
+          emoji="⚡"
+          description="Solve vetted industry challenges posted by real tech teams. Submit working solutions and get noticed by recruiters on merit."
+          bullets={[
+            "Micro-internship challenges with transparent rubrics",
+            "Clear milestone deliverables and automated code checks",
+            "Stipend bounties and direct fast-track interviews",
+          ]}
+          ctaText="Browse Active Tasks"
+          ctaPath="/signup"
+          mockup={
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_10px_30px_rgba(17,27,94,0.06)] space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#FEF3C7] text-[#D97706] flex items-center justify-center font-black text-xs">
+                    CS
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#111B5E]">CloudScale Systems</h4>
+                    <span className="text-[10px] text-[#16A34A] font-bold flex items-center gap-1">
+                      <ShieldCheck size={11} /> Verified Employer
+                    </span>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-[#DCFCE7] text-[#16A34A] text-xs font-black">
+                  $450 Bounty
+                </span>
+              </div>
+
+              <div>
+                <h4 className="text-base font-bold text-[#111B5E]">
+                  Implement Real-Time Metrics Pipeline
+                </h4>
+                <p className="text-xs text-[#5A6482] mt-1 leading-relaxed">
+                  Design a robust ingestion service handling 10k events/sec with resilient backpressure.
+                </p>
+              </div>
+
+              {/* Progress Milestones */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-[#111B5E]">
+                  <span>Milestone 3 of 4</span>
+                  <span className="text-[#7540F5]">75% Ready</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                  <div className="h-full bg-[#7540F5] rounded-full w-3/4" />
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-[#5A6482] pt-1">
+                  <span>Due in 4 days</span>
+                  <span>28 submissions</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Zap size={14} /> Submit Solution
+              </button>
+            </div>
+          }
+        />
+
+        {/* ──────────────────────────────────────────────────────── */}
+        {/* ROW 3: Profile (🌟)                                     */}
+        {/* ──────────────────────────────────────────────────────── */}
+        <FeatureRow
+          tag="Verified Portfolio"
+          title="Profile"
+          emoji="🌟"
+          description="Your authenticated academic and skill footprint. Showcase endorsed proficiencies, faculty ratings, and real project milestones."
+          bullets={[
+            "Authenticated college identity and enrollment status",
+            "Peer endorsements and mentor rating breakdowns",
+            "Comprehensive timeline of solved Task Mania challenges",
+          ]}
+          ctaText="Build Your Profile"
+          ctaPath="/signup"
+          mockup={
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_10px_30px_rgba(17,27,94,0.06)] space-y-4">
+              <div className="flex items-center gap-3.5">
+                <div className="relative">
+                  <img
+                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=faces"
+                    alt="Sneha Mukherjee"
+                    className="w-14 h-14 rounded-2xl object-cover border border-slate-100"
+                  />
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#16A34A] text-white flex items-center justify-center border-2 border-white">
+                    <Check size={11} strokeWidth={3} />
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-[#111B5E]">
+                    Sneha Mukherjee
+                  </h4>
+                  <p className="text-xs text-[#5A6482]">
+                    CS Undergrad • BITS Pilani '26
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1 text-[#FBBF24]">
+                    <Star size={13} className="fill-current" />
+                    <span className="text-xs font-bold text-[#111B5E]">4.95</span>
+                    <span className="text-[11px] text-[#5A6482]">(24 mentor ratings)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Endorsed Skills */}
+              <div className="space-y-1.5 pt-1">
+                <p className="text-xs font-bold text-[#111B5E]">Endorsed Skills</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="px-2.5 py-1 rounded-lg bg-[#F5F1FF] text-[#7540F5] text-xs font-bold">
+                    React & TypeScript
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-[#EDF7FF] text-[#2F6DB5] text-xs font-bold">
+                    Distributed Systems
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-[#DCFCE7] text-[#16A34A] text-xs font-bold">
+                    FastAPI
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-[#5A6482] text-xs font-bold">
+                    +4 more
+                  </span>
+                </div>
+              </div>
+
+              {/* Badges Bar */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-[#5A6482]">
+                <span className="flex items-center gap-1 font-semibold text-[#111B5E]">
+                  <Award size={14} className="text-[#7540F5]" /> Task Mania Top 5%
+                </span>
+                <span className="flex items-center gap-1 font-semibold text-[#111B5E]">
+                  <Flame size={14} className="text-[#FBBF24]" /> 18 Day Streak
+                </span>
+              </div>
+            </div>
+          }
+        />
+
+        {/* ──────────────────────────────────────────────────────── */}
+        {/* ROW 4: Virtual CV (📄)                                   */}
+        {/* ──────────────────────────────────────────────────────── */}
+        <FeatureRow
+          reversed
+          tag="Living Credential"
+          title="Virtual CV"
+          emoji="📄"
+          description="A dynamic, tamper-proof living resume that auto-syncs your completed tasks, mentorship hours, and certifications in real time."
+          bullets={[
+            "Cryptographic proof of work verifying project completion",
+            "Instant public share link with embedded QR verification",
+            "Exportable to clean, ATS-compliant formats with one click",
+          ]}
+          ctaText="Learn About Virtual CV"
+          ctaPath="/signup"
+          mockup={
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_10px_30px_rgba(17,27,94,0.06)] space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#F5F1FF] text-[#7540F5] flex items-center justify-center">
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#111B5E]">
+                      VIBE Virtual CV #8492
+                    </h4>
+                    <span className="text-[10px] text-[#16A34A] font-bold flex items-center gap-1">
+                      <ShieldCheck size={11} /> Cryptographically Signed
+                    </span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[10px] font-mono font-bold">
+                  SHA-256 ✓
+                </span>
+              </div>
+
+              {/* Public link copy box */}
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center justify-between gap-2">
+                <span className="text-xs font-mono text-[#5A6482] truncate">
+                  vibe.app/cv/sneha-mukherjee-bits
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyPublicCV}
+                  className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-bold text-[#111B5E] hover:text-[#7540F5] hover:border-[#7540F5] flex items-center gap-1 transition-colors flex-shrink-0"
+                >
+                  {copiedLink ? <Check size={12} className="text-[#16A34A]" /> : <Copy size={12} />}
+                  <span>{copiedLink ? "Copied!" : "Copy"}</span>
+                </button>
+              </div>
+
+              {/* Micro-Timeline Preview */}
+              <div className="space-y-2 pt-1 text-xs">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-2 h-2 rounded-full bg-[#7540F5] mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="font-bold text-[#111B5E]">
+                      CloudScale Systems • Micro-Internship
                     </p>
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: "88%" }}
-                        transition={{ duration: 1.5, delay: 0.5 }}
-                        className="h-full bg-gradient-to-r from-[#FF6B00] to-orange-400"
-                      />
-                    </div>
-                    <div className="flex justify-between text-[8px] sm:text-[10px] font-medium text-slate-400">
-                      <span>Lvl 8 Senior Student</span>
-                      <span>88/100</span>
-                    </div>
+                    <p className="text-[11px] text-[#5A6482]">
+                      Oct 2026 • Verified by Staff Lead Priya Nair
+                    </p>
                   </div>
-                </motion.div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <div className="w-2 h-2 rounded-full bg-[#16A34A] mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="font-bold text-[#111B5E]">
+                      AI Research Mentorship • 32 Hours
+                    </p>
+                    <p className="text-[11px] text-[#5A6482]">
+                      Sep 2026 • Certified by Dr. Ananya Rao
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-                {/* SUCCESS OFFER CARD */}
-                <motion.div className="h-48 sm:h-64 bg-white rounded-3xl p-4 sm:p-6 shadow-2xl relative overflow-hidden group border border-gray-100">
-                  <div className="relative z-10 h-full flex flex-col justify-between">
-                    <div className="flex items-center justify-between">
-                      <Zap className="text-[#FF6B00]" size={16} />
-                      <div className="flex -space-x-1 sm:-space-x-2">
-                        {[1, 2, 3].map((i) => (
-                          <div
-                            key={i}
-                            className="w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-gray-100 border border-gray-200"
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="space-y-1 sm:space-y-2">
-                      <h4 className="text-xs sm:text-sm font-black text-gray-800 leading-tight">
-                        Internship Secured
-                      </h4>
-                      <p className="text-[8px] sm:text-[10px] text-gray-500">
-                        TechCorp Cloud Infrastructure
-                      </p>
-                    </div>
-                    <div className="pt-3 sm:pt-4 border-t border-gray-200">
-                      <div className="flex items-center space-x-1 sm:space-x-2 mb-2 sm:mb-3">
-                        <CheckCircle className="text-green-500" size={12} />
-                        <span className="text-[8px] sm:text-[10px] font-bold text-gray-800 uppercase tracking-widest">
-                          Offer Accepted
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[8px] sm:text-[10px]">
-                        <span className="text-gray-500">Starts In:</span>
-                        <span className="text-gray-800 font-bold">14 Days</span>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Background Grid Pattern */}
-                  <div
-                    className="absolute inset-0 opacity-10"
-                    style={{
-                      backgroundImage:
-                        "radial-gradient(circle, #333 1px, transparent 1px)",
-                      backgroundSize: "16px 16px",
-                    }}
-                  />
-                  <div className="absolute bottom-0 right-0 w-32 h-32 bg-[#FF6B00]/20 blur-[60px] rounded-full group-hover:scale-150 transition-transform duration-700" />
-                </motion.div>
+              <div className="pt-2 flex items-center justify-between text-xs text-[#5A6482]">
+                <span className="flex items-center gap-1 text-[#7540F5] font-semibold">
+                  <QrCode size={14} /> Scan-to-verify badge included
+                </span>
+                <span className="font-mono text-[10px]">Updated today</span>
               </div>
             </div>
-          </div>
-        </div>
+          }
+        />
+
+        {/* ──────────────────────────────────────────────────────── */}
+        {/* ROW 5: Verified Internships & Mentorship (🤝)           */}
+        {/* ──────────────────────────────────────────────────────── */}
+        <FeatureRow
+          tag="Direct Pipelines"
+          title="Verified Internships and Mentorship"
+          emoji="🤝"
+          description="Book 1-on-1 guidance with accredited university professors and vetted tech executives. Gain actionable feedback and direct internship referrals."
+          bullets={[
+            "Structured 1-on-1 mentoring sessions with personalized roadmaps",
+            "Zero ghosting: guaranteed feedback and evaluation notes",
+            "Direct internship pipelines verified by institutional pacts",
+          ]}
+          ctaText="Find Your Mentor"
+          ctaPath="/signup"
+          mockup={
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_10px_30px_rgba(17,27,94,0.06)] space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-[#F5F1FF] text-[#7540F5] text-xs font-bold">
+                  Confirmed Mentorship Session
+                </span>
+                <span className="text-xs text-[#16A34A] font-bold flex items-center gap-1">
+                  <CheckCircle2 size={13} /> Active Booking
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3.5">
+                <img
+                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop&crop=faces"
+                  alt="Dr. Meera Sharma"
+                  className="w-12 h-12 rounded-full object-cover border border-slate-100"
+                />
+                <div>
+                  <h4 className="text-sm font-bold text-[#111B5E]">
+                    Dr. Meera Sharma
+                  </h4>
+                  <p className="text-xs text-[#5A6482]">
+                    Professor @ IIT Delhi • AI Lead
+                  </p>
+                  <p className="text-[11px] text-[#7540F5] font-semibold mt-0.5">
+                    Domain: Computer Vision & Career Prep
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-[#EDF7FF] p-3.5 rounded-2xl border border-[#D3E3EE] text-xs text-[#111B5E] space-y-1">
+                <div className="flex items-center gap-2 font-bold">
+                  <Calendar size={14} className="text-[#2F6DB5]" />
+                  <span>Thursday, Oct 16 • 4:00 PM – 4:45 PM</span>
+                </div>
+                <p className="text-[11px] text-[#5A6482] pl-5">
+                  Agenda: Codebase Architecture & Winter Internship Review
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] transition-colors flex items-center justify-center gap-1.5"
+              >
+                <span>Join Video Room</span>
+                <ExternalLink size={13} />
+              </button>
+            </div>
+          }
+        />
       </section>
 
-      {/* Roles Section */}
-      <section id="roles" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-slate-900">
-              Who is VIBE for?
+      {/* ======================================================== */}
+      {/* 5. "OUR COMMUNITY IS OUR SUPERPOWER" WALL OF LOVE       */}
+      {/* ======================================================== */}
+      <section className="py-16 overflow-hidden">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-3xl sm:text-4xl md:text-[42px] font-black tracking-tight text-[#111B5E] leading-tight">
+              Our community is our superpower
             </h2>
-            <p className="text-slate-600">
-              A ecosystem built for mutual success.
+
+            <p className="mt-3.5 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed">
+              Real stories from students who found certified opportunities and mentors who shaped future careers.
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <RoleCard
-              title="Student"
-              icon={<GraduationCap size={40} />}
-              points={[
-                "Apply via real tasks",
-                "Learn from faculty mentors",
-                "Build real portfolio",
-                "Get verified offers",
-              ]}
-              cta="Join as Student"
-              link="/signup/student"
-            />
-            <RoleCard
-              title="Faculty"
-              icon={<Users size={40} />}
-              points={[
-                "Mentor industry problems",
-                "Guide future professionals",
-                "Gain recognition & impact",
-                "Collaborate with industry",
-              ]}
-              cta="Join as Faculty"
-              link="/signup/faculty"
-              highlight
-            />
-            <RoleCard
-              title="Industry"
-              icon={<Briefcase size={40} />}
-              points={[
-                "Hire skilled interns",
-                "Evaluate real work",
-                "Reduce hiring risk",
-                "Direct talent pipeline",
-              ]}
-              cta="Join as Industry"
-              link="/signup/industry"
-            />
-          </div>
+          </motion.div>
         </div>
-      </section>
 
-      {/* FAQ Section */}
-      <section id="faq" className="py-24 bg-[#FAFAFA]">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-slate-900">
-              Frequently Asked Questions
-            </h2>
-            <p className="text-slate-600">
-              Everything you need to know about the platform.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <FAQAccordion
-              question="Is VIBE free for students?"
-              answer="Yes, VIBE is completely free for students to browse tasks, work with mentors, and apply for internships."
-            />
-            <FAQAccordion
-              question="How are industries verified?"
-              answer="We perform rigorous background checks on every company that applies to post internships, ensuring they have a physical presence and a track record of fair compensation."
-            />
-            <FAQAccordion
-              question="What kind of mentorship is provided?"
-              answer="Faculty mentors from registered colleges guide students through technical challenges while solving industry-provided tasks."
-            />
-            <FAQAccordion
-              question="Is an internship guaranteed?"
-              answer="While not guaranteed for everyone, students who successfully complete the specific industry tasks to the required standard are fast-tracked for official internship offers."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* NEW IMMERSIVE CTA LAYOUT */}
-      <section className="py-24 px-4 overflow-hidden bg-[#FAFAFA]">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="max-w-7xl mx-auto relative rounded-[40px] bg-white p-8 md:p-16 lg:p-24 overflow-hidden shadow-2xl border border-slate-200"
+        {/* Continuous Horizontal Testimonial Carousel */}
+        <div
+          className="relative w-full overflow-hidden mt-12 group/testimonials"
+          role="region"
+          aria-label="Community Testimonials"
         >
-          {/* Decorative Elements */}
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#FF6B00]/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+          {/* Subtle Left & Right Edge Gradient Masks for Smooth Ingress / Egress */}
           <div
-            className="absolute inset-0 opacity-[0.02] pointer-events-none"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle, #FF6B00 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-            }}
+            className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 sm:w-28 md:w-36 bg-gradient-to-r from-white via-white/80 to-transparent z-10"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 sm:w-28 md:w-36 bg-gradient-to-l from-white via-white/80 to-transparent z-10"
+            aria-hidden="true"
           />
 
-          <div className="relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto">
-            <motion.div
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
-              className="w-20 h-20 bg-[#FF6B00] rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-[#FF6B00]/40 mb-10 transform -rotate-12 hover:rotate-0 transition-all duration-500"
-            >
-              <Sparkles size={40} className="fill-current" />
-            </motion.div>
-
-            <h2 className="text-4xl md:text-6xl font-black text-slate-900 leading-tight mb-8">
-              Ready to find your <span className="text-[#FF6B00]">VIBE</span>?
-            </h2>
-
-            <p className="text-lg md:text-xl text-slate-600 mb-12 max-w-2xl leading-relaxed">
-              Stop sending generic resumes. Start proving your potential through
-              real tasks and join the top 1% of talent secured by verified
-              industries.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center gap-6 w-full sm:w-auto">
-              <Link to="/signup" className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  className="w-full sm:w-64 h-16 text-xl rounded-2xl shadow-2xl shadow-[#FF6B00]/20 group"
+          {/* Infinite Marquee Track (Double Sub-Track for Exact Mathematical Seamless Looping) */}
+          <div className="animate-vibe-testimonial-marquee py-4 flex items-stretch">
+            {/* Primary Track Set */}
+            <div className="flex items-stretch gap-6 shrink-0 pr-6">
+              {testimonials.map((t, idx) => (
+                <div
+                  key={`primary-${idx}`}
+                  className="w-[300px] sm:w-[360px] lg:w-[410px] shrink-0 text-left flex flex-col"
                 >
-                  Get Started Now
-                  <ArrowRight
-                    className="ml-3 group-hover:scale-110 transition-transform"
-                    size={24}
+                  <TestimonialCard
+                    name={t.name}
+                    role={t.role}
+                    institution={t.institution}
+                    avatar={t.avatar}
+                    quote={t.quote}
+                    tag={t.tag}
+                    isDuplicate={false}
                   />
-                </Button>
-              </Link>
-              <Link to="/login" className="w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full sm:w-64 h-16 text-xl rounded-2xl border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-black hover:border-slate-400 group"
-                >
-                  Log In to Dashboard
-                </Button>
-              </Link>
+                </div>
+              ))}
             </div>
 
-            <div className="mt-16 flex flex-wrap justify-center gap-8 md:gap-16 opacity-60">
-              <div className="flex items-center gap-2 text-slate-600">
-                <CheckCircle size={20} />{" "}
-                <span className="text-xs font-bold uppercase tracking-widest">
-                  No hidden fees
-                </span>
+            {/* Cloned Track Set (Marked aria-hidden="true" for Accessible Screen Reader Navigation) */}
+            <div
+              className="flex items-stretch gap-6 shrink-0 pr-6"
+              aria-hidden="true"
+            >
+              {testimonials.map((t, idx) => (
+                <div
+                  key={`clone-${idx}`}
+                  className="w-[300px] sm:w-[360px] lg:w-[410px] shrink-0 text-left flex flex-col"
+                >
+                  <TestimonialCard
+                    name={t.name}
+                    role={t.role}
+                    institution={t.institution}
+                    avatar={t.avatar}
+                    quote={t.quote}
+                    tag={t.tag}
+                    isDuplicate={true}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================== */}
+      {/* 6. "PRIVACY FIRST, ALWAYS" TRUST SECTION                 */}
+      {/* ======================================================== */}
+      <section className="py-14 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+        <div className="bg-[#EDF7FF]/70 border border-[#D3E3EE] rounded-3xl p-8 sm:p-12 md:p-14 relative overflow-hidden">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="w-12 h-12 rounded-2xl bg-white text-[#2F6DB5] flex items-center justify-center mx-auto mb-4 shadow-xs border border-[#D3E3EE]">
+              <Lock size={22} />
+            </div>
+
+            <h2 className="text-3xl sm:text-4xl font-black text-[#111B5E] tracking-tight">
+              Privacy first, always
+            </h2>
+
+            <p className="mt-3.5 text-base sm:text-lg text-[#5A6482] leading-relaxed">
+              We believe verified opportunity should never compromise student safety or institutional integrity. VIBE is engineered with strict academic data standards.
+            </p>
+
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-5 text-left">
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs">
+                <div className="flex items-center gap-2.5 mb-2 text-[#16A34A]">
+                  <ShieldCheck size={20} />
+                  <h4 className="text-base font-bold text-[#111B5E]">
+                    Institutional Authentication
+                  </h4>
+                </div>
+                <p className="text-xs sm:text-sm text-[#5A6482] leading-relaxed">
+                  Every student and mentor is verified against authorized institutional domains (.edu/ac.in) to keep campus circles safe from spam.
+                </p>
               </div>
-              <div className="flex items-center gap-2 text-slate-600">
-                <CheckCircle size={20} />{" "}
-                <span className="text-xs font-bold uppercase tracking-widest">
-                  Secure & Vetted
-                </span>
+
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs">
+                <div className="flex items-center gap-2.5 mb-2 text-[#7540F5]">
+                  <CheckCircle2 size={20} />
+                  <h4 className="text-base font-bold text-[#111B5E]">
+                    Zero Data Selling
+                  </h4>
+                </div>
+                <p className="text-xs sm:text-sm text-[#5A6482] leading-relaxed">
+                  Your academic records and project files belong to you. We never monetize or sell personal candidate data to third-party ad networks.
+                </p>
               </div>
-              <div className="flex items-center gap-2 text-slate-600">
-                <CheckCircle size={20} />{" "}
-                <span className="text-xs font-bold uppercase tracking-widest">
-                  24/7 Support
-                </span>
+
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs">
+                <div className="flex items-center gap-2.5 mb-2 text-[#D97706]">
+                  <Award size={20} />
+                  <h4 className="text-base font-bold text-[#111B5E]">
+                    Cryptographic Proof of Work
+                  </h4>
+                </div>
+                <p className="text-xs sm:text-sm text-[#5A6482] leading-relaxed">
+                  Virtual CV entries and Task Mania completions are signed and time-stamped to guarantee authenticity and eliminate resume inflation.
+                </p>
+              </div>
+
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs">
+                <div className="flex items-center gap-2.5 mb-2 text-[#0284C7]">
+                  <Building2 size={20} />
+                  <h4 className="text-base font-bold text-[#111B5E]">
+                    FERPA & Campus Compliant
+                  </h4>
+                </div>
+                <p className="text-xs sm:text-sm text-[#5A6482] leading-relaxed">
+                  Built to adhere to modern university privacy guidelines, audit trails, and strict role-based permission boundaries.
+                </p>
               </div>
             </div>
           </div>
-
-          {/* Floating Accents - Now visible on mobile */}
-          <motion.div
-            animate={{ y: [0, -20, 0], rotate: [0, 10, 0] }}
-            transition={{ duration: 5, repeat: Infinity }}
-            className="absolute top-10 sm:top-20 left-4 sm:left-20"
-          >
-            <div className="p-3 sm:p-4 bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200 shadow-2xl">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center text-white">
-                  <CheckCircle size={12} className="sm:w-4 sm:h-4" />
-                </div>
-                <div className="text-left">
-                  <p className="text-[8px] sm:text-[10px] font-bold text-slate-800 uppercase">
-                    Profile Verified
-                  </p>
-                  <p className="text-[6px] sm:text-[8px] text-slate-500">
-                    Secured by VIBE Protocol
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            animate={{ y: [0, 20, 0], rotate: [0, -10, 0] }}
-            transition={{ duration: 7, repeat: Infinity }}
-            className="absolute bottom-10 sm:bottom-20 right-4 sm:right-20"
-          >
-            <div className="p-3 sm:p-4 bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200 shadow-2xl">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#FF6B00] flex items-center justify-center text-white">
-                  <Rocket size={12} className="sm:w-4 sm:h-4" />
-                </div>
-                <div className="text-left">
-                  <p className="text-[8px] sm:text-[10px] font-bold text-slate-800 uppercase">
-                    Fast Track
-                  </p>
-                  <p className="text-[6px] sm:text-[8px] text-slate-500">
-                    Internship Offer Active
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
+        </div>
       </section>
-    </div>
-  );
-};
 
-const RoleCard = ({ title, icon, points, cta, link, highlight }) => (
-  <GlassCard glow={highlight} className="h-full flex flex-col group">
-    <div
-      className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 transition-transform duration-500 group-hover:scale-110 ${highlight ? "bg-[#FF6B00] text-white shadow-lg" : "bg-slate-100 text-[#FF6B00]"}`}
-    >
-      {icon}
-    </div>
-    <h3 className="text-2xl font-bold mb-6 text-slate-900">{title}</h3>
-    <ul className="space-y-4 mb-10 flex-grow">
-      {points.map((p, i) => (
-        <li key={i} className="flex items-start space-x-3 text-slate-600">
-          <CheckCircle2
-            size={18}
-            className="text-[#FF6B00] mt-1 flex-shrink-0"
-          />
-          <span>{p}</span>
-        </li>
-      ))}
-    </ul>
-    <Link to={link}>
-      <Button
-        variant={
-          title === "Faculty" ? "faculty" : highlight ? "primary" : "outline"
-        }
-        fullWidth
-      >
-        {cta}
-      </Button>
-    </Link>
-  </GlassCard>
-);
+      {/* ======================================================== */}
+      {/* 7. FINAL CTA BAND ("LET'S GET GROWING")                  */}
+      {/* ======================================================== */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto mb-8">
+        <div className="bg-[#F5F1FF] border border-[#E9E1FF] rounded-3xl p-8 sm:p-12 md:p-14 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="space-y-4 max-w-xl text-center md:text-left">
+            <span className="inline-block px-3 py-1 rounded-full bg-white text-[#7540F5] text-xs font-black uppercase tracking-wider shadow-2xs">
+              Join VIBE Today
+            </span>
 
-const FAQAccordion = ({ question, answer }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
-  return (
-    <div className="border-b border-slate-200">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full py-6 flex items-center justify-between text-left hover:text-[#FF6B00] transition-colors"
-      >
-        <span className="text-lg font-semibold text-slate-800">{question}</span>
-        <motion.div animate={{ rotate: isOpen ? 180 : 0 }}>
-          <ChevronDown size={20} className="text-slate-400" />
-        </motion.div>
-      </button>
-      <motion.div
-        initial={false}
-        animate={{ height: isOpen ? "auto" : 0, opacity: isOpen ? 1 : 0 }}
-        className="overflow-hidden"
-      >
-        <p className="pb-6 text-slate-600 leading-relaxed">{answer}</p>
-      </motion.div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#111B5E] tracking-tight leading-tight">
+              Let's get growing
+            </h2>
+
+            <p className="text-base sm:text-lg text-[#5A6482] leading-relaxed">
+              Whether you are a student hungry for practical projects or an educator passionate about mentorship — your place is here.
+            </p>
+
+            {/* Quick Role Badges inside CTA */}
+            <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-2">
+              <Link
+                to="/signup/student"
+                className="px-4 py-2 rounded-full bg-white hover:bg-[#7540F5] text-[#111B5E] hover:text-white border border-slate-200/90 text-xs font-bold transition-colors"
+              >
+                For Students
+              </Link>
+              <Link
+                to="/signup/faculty"
+                className="px-4 py-2 rounded-full bg-white hover:bg-[#7540F5] text-[#111B5E] hover:text-white border border-slate-200/90 text-xs font-bold transition-colors"
+              >
+                For Mentors
+              </Link>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center sm:items-end gap-3 flex-shrink-0">
+            <Link
+              to="/signup"
+              className="min-h-[48px] px-8 py-4 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-[0_8px_24px_rgba(117,64,245,0.3)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.4)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 group"
+            >
+              <span>Get started — It's Free</span>
+              <ArrowRight
+                size={18}
+                className="group-hover:translate-x-1 transition-transform"
+              />
+            </Link>
+            <span className="text-xs text-[#5A6482]">
+              No credit card required • Instant verification
+            </span>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

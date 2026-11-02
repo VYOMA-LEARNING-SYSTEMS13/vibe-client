@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -16,17 +17,56 @@ import {
   Loader2,
   Plus,
   Trash2,
+  FileText,
 } from "lucide-react";
 import api from '../../services/api';
+import { useToast } from '../Toast';
+import Avatar from '../shared/Avatar';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
-export const MentorRequestsView = () => {
+export const MentorRequestsView = ({ onBackToFeed }) => {
+  const navigate = useNavigate();
+  const toast = useToast();
   const [requests, setRequests] = useState([]);
-  const [filter, setFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState(() => {
+    return sessionStorage.getItem("vibe_faculty_requests_filter") || "all";
+  });
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return sessionStorage.getItem("vibe_faculty_requests_search") || "";
+  });
   const [selectedRequest, setSelectedRequest] = useState(null);
+
+  const handleFilterChange = (newFilter) => {
+    setFilter(newFilter);
+    sessionStorage.setItem("vibe_faculty_requests_filter", newFilter);
+  };
+
+  const handleSearchChange = (val) => {
+    setSearchQuery(val);
+    sessionStorage.setItem("vibe_faculty_requests_search", val);
+  };
+
+  const handleOpenTaskDetails = (taskId) => {
+    if (!taskId) {
+      toast.error("This task is no longer available or was removed.");
+      return;
+    }
+    try {
+      localStorage.setItem("vibe_faculty_tab", "mentorship");
+    } catch (e) {
+      // ignore
+    }
+    navigate(`/tasks/${taskId}`, {
+      state: {
+        from: "/dashboard/faculty?view=mentorship",
+        fromTab: "mentorship",
+      },
+    });
+  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [acceptingRequestId, setAcceptingRequestId] = useState(null);
+  useScrollLock(Boolean(selectedRequest || acceptingRequestId));
   const [meetLink, setMeetLink] = useState("");
   const [resources, setResources] = useState([{ label: "", url: "" }]);
 
@@ -43,19 +83,21 @@ export const MentorRequestsView = () => {
         const mappedRequests = response.data.data.map(req => ({
           id: req._id,
           student: {
-            name: req.student.name,
-            email: req.student.email,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(req.student.name)}&background=random`,
-            college: req.student.Profile?.InstituteName || "N/A",
-            year: req.student.Profile?.YearOfStudy || "N/A",
-            branch: req.student.Profile?.Branch || "N/A",
+            id: req.student?._id || req.student?.id,
+            _id: req.student?._id || req.student?.id,
+            name: req.student?.name || "Student",
+            email: req.student?.email || "",
+            avatar: req.student?.ImageUrl || req.student?.avatar || req.student?.Profile?.ImageUrl || "",
+            college: req.student?.Profile?.InstituteName || "N/A",
+            year: req.student?.Profile?.YearOfStudy || "N/A",
+            branch: req.student?.Profile?.Branch || "N/A",
           },
           task: {
-            title: req.task.title,
-            company: req.task.companyName,
-            category: req.task.category,
-            deadline: new Date(req.task.lastDateToSubmit).toLocaleDateString(),
-            id: req.task._id,
+            title: req.task?.title || "Mentorship Session",
+            company: req.task?.companyName || "VIBE Task",
+            category: req.task?.category || "General",
+            deadline: req.task?.lastDateToSubmit ? new Date(req.task.lastDateToSubmit).toLocaleDateString() : "Flexible",
+            id: req.task?._id || req.task?.id || (typeof req.task === "string" ? req.task : null),
           },
           requestDate: new Date(req.createdAt).toLocaleDateString(),
           message: req.message,
@@ -82,7 +124,7 @@ export const MentorRequestsView = () => {
 
   const handleAcceptSubmit = async () => {
     if (!meetLink.trim()) {
-      alert("Please provide a meeting link.");
+      toast.error("Please provide a meeting link.");
       return;
     }
 
@@ -100,12 +142,12 @@ export const MentorRequestsView = () => {
           req.id === acceptingRequestId ? { ...req, status: "accepted", meetLink, resources: filteredResources } : req,
         ),
       );
-      alert("Request accepted! Student will be notified.");
+      toast.success("Request accepted! Student will be notified.");
       setAcceptingRequestId(null);
       setSelectedRequest(null);
     } catch (err) {
       console.error("Error accepting request:", err);
-      alert(err.response?.data?.message || "Failed to accept request. Please try again.");
+      toast.error(err.response?.data?.message || "Failed to accept request. Please try again.");
     }
   };
 
@@ -117,10 +159,10 @@ export const MentorRequestsView = () => {
           req.id === requestId ? { ...req, status: "rejected" } : req,
         ),
       );
-      alert("Request rejected. Student will be notified.");
+      toast.info("Request rejected. Student will be notified.");
     } catch (err) {
       console.error("Error rejecting request:", err);
-      alert("Failed to reject request. Please try again.");
+      toast.error(err.response?.data?.message || "Failed to reject request. Please try again.");
     }
   };
 
@@ -136,62 +178,76 @@ export const MentorRequestsView = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case "pending":
-        return "bg-amber-50 text-amber-600 border-amber-100";
+        return "bg-[#FEF3C7] text-[#D97706] border-[#FDE68A]";
       case "accepted":
-        return "bg-green-50 text-green-600 border-green-100";
+        return "bg-[#F0FDF4] text-[#16A34A] border-[#DCFCE7]";
       case "rejected":
-        return "bg-red-50 text-red-600 border-red-100";
+        return "bg-[#FEF2F2] text-[#EF4444] border-[#FEE2E2]";
       default:
         return "bg-gray-50 text-gray-600 border-gray-100";
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mentor Requests</h1>
-          <p className="text-gray-500">Manage and respond to student mentorship requests</p>
+    <div className="w-full space-y-5">
+      {/* Header Card with Filter Buttons */}
+      <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 sm:p-6 shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">
+              Mentorship Requests
+            </h1>
+            <p className="text-xs text-[#64748B] mt-0.5">
+              Review, accept, and schedule sessions with student mentees
+            </p>
+          </div>
+
+          {onBackToFeed && (
+            <button
+              onClick={onBackToFeed}
+              className="self-start sm:self-auto text-xs font-bold text-[#6D3DF5] hover:underline"
+            >
+              Back to Feed
+            </button>
+          )}
         </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 flex">
+
+        {/* Filter Pills and Search Bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2 border-t border-[#F1F5F9]">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
             {["all", "pending", "accepted", "rejected"].map((f) => (
               <button
                 key={f}
-                onClick={() => setFilter(f)}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${
+                onClick={() => handleFilterChange(f)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all ${
                   filter === f
-                    ? "bg-orange-500 text-white shadow-md"
-                    : "text-gray-600 hover:bg-gray-50"
+                    ? "bg-[#6D3DF5] text-white shadow-xs"
+                    : "text-[#64748B] hover:text-[#6D3DF5] hover:bg-[#F2ECFF]"
                 }`}
               >
                 {f}
               </button>
             ))}
           </div>
-        </div>
-      </div>
 
-      {/* Search and Filters */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search by student name, task or company..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-          />
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={16} />
+            <input
+              type="text"
+              placeholder="Search by student name or topic..."
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full pl-9 pr-3.5 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#6D3DF5] focus:bg-white transition-all"
+            />
+          </div>
         </div>
       </div>
 
       {/* Content */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-10 h-10 text-orange-500 animate-spin mb-4" />
-          <p className="text-gray-500 font-medium">Loading requests...</p>
+          <Loader2 className="w-10 h-10 text-[#6D3DF5] animate-spin mb-4" />
+          <p className="text-[#64748B] font-medium text-sm">Loading requests...</p>
         </div>
       ) : error ? (
         <div className="bg-red-50 border border-red-100 rounded-2xl p-8 text-center">
@@ -206,12 +262,12 @@ export const MentorRequestsView = () => {
           </button>
         </div>
       ) : filteredRequests.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm">
-          <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MessageSquare size={32} className="text-gray-300" />
+        <div className="bg-white rounded-2xl p-12 text-center border border-[#E1E8F2] shadow-sm">
+          <div className="w-20 h-20 bg-[#F2ECFF] rounded-full flex items-center justify-center mx-auto mb-4">
+            <MessageSquare size={32} className="text-[#6D3DF5]" />
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">No requests found</h3>
-          <p className="text-gray-500">
+          <h3 className="text-xl font-bold text-[#172554] mb-2">No requests found</h3>
+          <p className="text-[#64748B]">
             {filter === "all"
               ? "You haven't received any mentor requests yet."
               : `No ${filter} requests found.`}
@@ -225,19 +281,26 @@ export const MentorRequestsView = () => {
               key={request.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden"
+              className="bg-white rounded-2xl border border-[#E1E8F2] shadow-sm hover:shadow-md transition-all overflow-hidden"
             >
               {/* Card Header */}
-              <div className="p-5 border-b border-gray-50 flex justify-between items-start">
-                <div className="flex gap-4">
-                  <img
+              <div className="p-5 border-b border-[#E1E8F2] flex justify-between items-start">
+                <div
+                  onClick={() => {
+                    const sid = request.student.id || request.student._id;
+                    if (sid) navigate(`/profile/${sid}`);
+                  }}
+                  className="flex gap-4 items-center cursor-pointer group/student"
+                >
+                  <Avatar
+                    name={request.student.name}
                     src={request.student.avatar}
-                    alt={request.student.name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-orange-100"
+                    className="w-12 h-12 rounded-full object-cover ring-2 ring-[#E2E8F0] group-hover/student:ring-[#6D3DF5]/30 transition-all flex-shrink-0"
+                    initialsClassName="text-sm font-bold text-white"
                   />
                   <div>
-                    <h3 className="font-bold text-gray-900">{request.student.name}</h3>
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <h3 className="font-bold text-[#172554] group-hover/student:text-[#6D3DF5] transition-colors">{request.student.name}</h3>
+                    <p className="text-xs text-[#64748B] flex items-center gap-1">
                       <Clock size={12} /> {request.requestDate}
                     </p>
                   </div>
@@ -254,20 +317,32 @@ export const MentorRequestsView = () => {
               {/* Card Body */}
               <div className="p-5 space-y-4">
                 <div>
-                  <p className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-1">
+                  <p className="text-xs font-bold text-[#6D3DF5] uppercase tracking-wider mb-1">
                     Task Details
                   </p>
-                  <h4 className="font-bold text-gray-800 line-clamp-1">
-                    {request.task.title}
-                  </h4>
-                  <p className="text-sm text-gray-500">{request.task.company}</p>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenTaskDetails(request.task.id);
+                    }}
+                    className="group/task text-left font-bold text-[#172554] hover:text-[#6D3DF5] transition-colors cursor-pointer line-clamp-1 hover:underline decoration-[#6D3DF5]/40 underline-offset-2 flex items-center gap-1.5 focus:outline-none"
+                    title={`View full details for "${request.task.title}"`}
+                  >
+                    <span>{request.task.title}</span>
+                    <ExternalLink
+                      size={13}
+                      className="text-[#94A3B8] group-hover/task:text-[#6D3DF5] opacity-70 group-hover/task:opacity-100 transition-all flex-shrink-0"
+                    />
+                  </button>
+                  <p className="text-sm text-[#64748B] mt-0.5">{request.task.company}</p>
                 </div>
 
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                <div className="bg-[#F8FAFC] rounded-xl p-4 border border-[#E1E8F2]">
+                  <p className="text-xs font-bold text-[#64748B] uppercase tracking-wider mb-2 flex items-center gap-1">
                     <MessageSquare size={12} /> Student Message
                   </p>
-                  <p className="text-sm text-gray-700 italic line-clamp-3">
+                  <p className="text-sm text-[#172554] italic line-clamp-3">
                     "{request.message || "No message provided."}"
                   </p>
                 </div>
@@ -276,7 +351,7 @@ export const MentorRequestsView = () => {
                   {request.skills.map((skill) => (
                     <span
                       key={skill}
-                      className="px-2 py-1 bg-white border border-gray-200 text-gray-600 text-[10px] font-bold rounded-md uppercase"
+                      className="px-2 py-1 bg-[#F2ECFF] border border-[#E1E8F2] text-[#6D3DF5] text-[10px] font-bold rounded-md uppercase"
                     >
                       {skill}
                     </span>
@@ -285,10 +360,10 @@ export const MentorRequestsView = () => {
               </div>
 
               {/* Card Footer */}
-              <div className="p-4 bg-gray-50/50 border-t border-gray-50 flex gap-3">
+              <div className="p-4 bg-[#F8FAFC] border-t border-[#E1E8F2] flex gap-3">
                 <button
                   onClick={() => setSelectedRequest(request)}
-                  className="flex-1 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-white border border-[#E1E8F2] text-[#172554] rounded-xl text-sm font-bold hover:bg-[#F2ECFF] hover:text-[#6D3DF5] transition-all flex items-center justify-center gap-2"
                 >
                   <Eye size={16} /> Details
                 </button>
@@ -303,7 +378,7 @@ export const MentorRequestsView = () => {
                     </button>
                     <button
                       onClick={() => handleAcceptClick(request.id)}
-                      className="px-4 py-2 bg-orange-600 text-white rounded-xl text-sm font-bold hover:bg-orange-700 transition-all shadow-sm flex items-center justify-center gap-2"
+                      className="px-4 py-2 bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white rounded-xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2"
                     >
                       <CheckCircle size={16} /> Accept
                     </button>
@@ -324,15 +399,17 @@ export const MentorRequestsView = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedRequest(null)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm touch-none"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden"
+              role="dialog"
+              aria-modal="true"
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden overscroll-contain"
             >
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-orange-50/50">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-[#F3EEFF]/60">
                 <h2 className="text-xl font-bold text-gray-900">Request Details</h2>
                 <button
                   onClick={() => setSelectedRequest(null)}
@@ -342,13 +419,14 @@ export const MentorRequestsView = () => {
                 </button>
               </div>
 
-              <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto overscroll-contain">
                 {/* Student Info */}
                 <div className="flex gap-4 items-center p-4 bg-gray-50 rounded-2xl">
-                  <img
+                  <Avatar
+                    name={selectedRequest.student.name}
                     src={selectedRequest.student.avatar}
-                    alt={selectedRequest.student.name}
-                    className="w-16 h-16 rounded-full border-2 border-white shadow-sm"
+                    className="w-16 h-16 rounded-full object-cover ring-2 ring-white shadow-sm flex-shrink-0"
+                    initialsClassName="text-base font-bold text-white"
                   />
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">
@@ -357,10 +435,10 @@ export const MentorRequestsView = () => {
                     <p className="text-sm text-gray-500">{selectedRequest.student.email}</p>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
                       <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Award size={12} className="text-orange-500" /> {selectedRequest.student.college}
+                        <Award size={12} className="text-[#6D3DF5]" /> {selectedRequest.student.college}
                       </p>
                       <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <User size={12} className="text-orange-500" /> {selectedRequest.student.year} • {selectedRequest.student.branch}
+                        <User size={12} className="text-[#6D3DF5]" /> {selectedRequest.student.year} • {selectedRequest.student.branch}
                       </p>
                     </div>
                   </div>
@@ -368,14 +446,33 @@ export const MentorRequestsView = () => {
 
                 {/* Task Info */}
                 <div className="space-y-3">
-                  <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                    <Calendar size={18} className="text-orange-500" /> Task Information
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                      <Calendar size={18} className="text-[#6D3DF5]" /> Task Information
+                    </h4>
+                    {selectedRequest.task.id && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenTaskDetails(selectedRequest.task.id)}
+                        className="text-xs font-bold text-[#6D3DF5] hover:text-[#5B2FD6] flex items-center gap-1 hover:underline"
+                      >
+                        View Full Task <ExternalLink size={12} />
+                      </button>
+                    )}
+                  </div>
                   <div className="border border-gray-100 rounded-2xl p-4">
-                    <h5 className="font-bold text-gray-800">{selectedRequest.task.title}</h5>
-                    <p className="text-sm text-gray-500 mb-3">{selectedRequest.task.company}</p>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenTaskDetails(selectedRequest.task.id)}
+                      className="group/modaltask text-left font-bold text-gray-800 hover:text-[#6D3DF5] transition-colors cursor-pointer flex items-center gap-1.5 hover:underline decoration-[#6D3DF5]/40 underline-offset-2 focus:outline-none"
+                      title={`View full details for "${selectedRequest.task.title}"`}
+                    >
+                      <span>{selectedRequest.task.title}</span>
+                      <ExternalLink size={13} className="text-[#94A3B8] group-hover/modaltask:text-[#6D3DF5] transition-colors" />
+                    </button>
+                    <p className="text-sm text-gray-500 mb-3 mt-0.5">{selectedRequest.task.company}</p>
                     <div className="flex items-center justify-between text-xs font-medium">
-                      <span className="px-2 py-1 bg-orange-50 text-orange-600 rounded-md capitalize">
+                      <span className="px-2 py-1 bg-[#F3EEFF] text-[#6D3DF5] rounded-md capitalize">
                         {selectedRequest.task.category}
                       </span>
                       <span className="text-gray-400">Deadline: {selectedRequest.task.deadline}</span>
@@ -387,7 +484,7 @@ export const MentorRequestsView = () => {
                 {selectedRequest.status === "accepted" && selectedRequest.meetLink && (
                   <div className="space-y-3">
                     <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                      <ExternalLink size={18} className="text-orange-500" /> Meeting Link
+                      <ExternalLink size={18} className="text-[#6D3DF5]" /> Meeting Link
                     </h4>
                     <div className="border border-green-100 bg-green-50/30 rounded-2xl p-4">
                       <a href={selectedRequest.meetLink} target="_blank" rel="noopener noreferrer" className="text-green-600 font-medium hover:underline flex items-center gap-2">
@@ -401,7 +498,7 @@ export const MentorRequestsView = () => {
                 {selectedRequest.status === "accepted" && selectedRequest.resources && selectedRequest.resources.length > 0 && (
                   <div className="space-y-3">
                     <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                      <FileText size={18} className="text-orange-500" /> Shared Resources
+                      <FileText size={18} className="text-[#6D3DF5]" /> Shared Resources
                     </h4>
                     <div className="grid grid-cols-1 gap-3">
                       {selectedRequest.resources.map((res, i) => (
@@ -415,7 +512,7 @@ export const MentorRequestsView = () => {
                               <p className="text-xs text-gray-500 truncate max-w-[200px]">{res.url}</p>
                             </div>
                           </div>
-                          <a href={res.url} target="_blank" rel="noopener noreferrer" className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-all">
+                          <a href={res.url} target="_blank" rel="noopener noreferrer" className="p-2 text-[#6D3DF5] hover:bg-[#F3EEFF] rounded-lg transition-all">
                             <ExternalLink size={16} />
                           </a>
                         </div>
@@ -427,9 +524,9 @@ export const MentorRequestsView = () => {
                 {/* Message */}
                 <div className="space-y-3">
                   <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                    <MessageSquare size={18} className="text-orange-500" /> Message
+                    <MessageSquare size={18} className="text-[#6D3DF5]" /> Message
                   </h4>
-                  <div className="bg-orange-50/30 rounded-2xl p-4 border border-orange-100/50">
+                  <div className="bg-[#F3EEFF]/40 rounded-2xl p-4 border border-[#EDE9FE]/50">
                     <p className="text-gray-700 leading-relaxed italic">
                       "{selectedRequest.message || "No message provided."}"
                     </p>
@@ -449,7 +546,7 @@ export const MentorRequestsView = () => {
                     onClick={() => {
                       handleAcceptClick(selectedRequest.id);
                     }}
-                    className="flex-[2] px-4 py-3 text-sm font-bold text-white bg-orange-600 rounded-2xl hover:bg-orange-700 transition-all shadow-md flex items-center justify-center gap-2"
+                    className="flex-[2] px-4 py-3 text-sm font-bold text-white bg-[#6D3DF5] rounded-2xl hover:bg-[#5B2FD6] transition-all shadow-md flex items-center justify-center gap-2"
                   >
                     <CheckCircle size={18} /> Accept Request
                   </button>
@@ -469,20 +566,22 @@ export const MentorRequestsView = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setAcceptingRequestId(null)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm touch-none"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden"
+              role="dialog"
+              aria-modal="true"
+              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden overscroll-contain"
             >
-              <div className="p-6 border-b border-gray-100 bg-orange-50/50">
+              <div className="p-6 border-b border-gray-100 bg-[#F2ECFF]">
                 <h2 className="text-xl font-bold text-gray-900">Accept Request</h2>
-                <p className="text-sm text-gray-500 mt-1">Provide meeting links and resources for the student.</p>
+                <p className="text-sm text-[#64748B] mt-1">Provide meeting links and resources for the student.</p>
               </div>
 
-              <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+              <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto overscroll-contain">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Meeting Link (Google Meet, Zoom, etc.) <span className="text-red-500">*</span>
@@ -492,7 +591,7 @@ export const MentorRequestsView = () => {
                     placeholder="https://meet.google.com/..."
                     value={meetLink}
                     onChange={(e) => setMeetLink(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#6D3DF5] outline-none transition-all"
                     autoFocus
                   />
                 </div>
@@ -504,7 +603,7 @@ export const MentorRequestsView = () => {
                     </label>
                     <button
                       onClick={() => setResources([...resources, { label: "", url: "" }])}
-                      className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
+                      className="p-1.5 text-[#6D3DF5] hover:bg-[#F2ECFF] rounded-lg transition-all"
                       title="Add Resource"
                     >
                       <Plus size={18} />
@@ -523,7 +622,7 @@ export const MentorRequestsView = () => {
                               newRes[index].label = e.target.value;
                               setResources(newRes);
                             }}
-                            className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#6D3DF5] outline-none"
                           />
                           <input
                             type="url"
@@ -534,7 +633,7 @@ export const MentorRequestsView = () => {
                               newRes[index].url = e.target.value;
                               setResources(newRes);
                             }}
-                            className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#6D3DF5] outline-none"
                           />
                         </div>
                         {resources.length > 1 && (
@@ -561,7 +660,7 @@ export const MentorRequestsView = () => {
                 <button
                   onClick={handleAcceptSubmit}
                   disabled={!meetLink.trim()}
-                  className="flex-[2] px-4 py-2.5 text-sm font-bold text-white bg-orange-600 rounded-xl hover:bg-orange-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-[2] px-4 py-2.5 text-sm font-bold text-white bg-[#6D3DF5] rounded-xl hover:bg-[#5B2FD6] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Confirm & Accept
                 </button>

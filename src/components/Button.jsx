@@ -10,18 +10,22 @@ const Button = ({
   ...props
 }) => {
   const baseStyles =
-    "inline-flex items-center justify-center font-semibold transition-all duration-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF6B00] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex items-center justify-center font-semibold transition-all duration-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--vibe-primary,#1D3C5A)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed";
 
   const variants = {
     primary:
-      "bg-[#FF6B00] text-white hover:bg-[#e65a00] hover:shadow-[0_8px_20px_rgba(255,107,0,0.3)]",
+      "bg-[var(--navy,#1D3C5A)] text-white hover:bg-[var(--ink,#12283F)] hover:shadow-[0_8px_20px_rgba(29,60,90,0.3)]",
+    purple:
+      "bg-[var(--vibe-primary,#6D3DF5)] text-white hover:bg-[var(--vibe-primary-hover,#5B2FD6)] focus:ring-[var(--vibe-primary,#6D3DF5)] shadow-xs",
+    navy:
+      "bg-[var(--vibe-navy,#172554)] text-white hover:bg-[var(--vibe-navy-hover,#0F172A)] shadow-xs",
     secondary:
-      "bg-slate-100 text-slate-900 hover:bg-slate-200 border border-slate-200",
+      "bg-[#E6EEF5] text-[var(--ink,#12283F)] hover:bg-[#D3E3EE] border border-[var(--border,#C9D8E4)]",
     outline:
-      "border-2 border-[#FF6B00] text-[#FF6B00] hover:bg-[#FF6B00] hover:text-white",
-    ghost: "text-slate-600 hover:text-slate-900 hover:bg-slate-100",
+      "border-2 border-[var(--navy,#1D3C5A)] text-[var(--navy,#1D3C5A)] hover:bg-[var(--navy,#1D3C5A)] hover:text-white",
+    ghost: "text-[#5E6A76] hover:text-[var(--ink,#12283F)] hover:bg-[#E6EEF5]",
     faculty:
-      "bg-white text-[#FF6B00] border-2 border-[#FF6B00] hover:bg-[#FF6B00] hover:text-white active:bg-white active:text-[#FF6B00]",
+      "bg-white text-[var(--navy,#1D3C5A)] border-2 border-[var(--navy,#1D3C5A)] hover:bg-[var(--navy,#1D3C5A)] hover:text-white active:bg-white active:text-[var(--navy,#1D3C5A)]",
   };
 
   const sizes = {
