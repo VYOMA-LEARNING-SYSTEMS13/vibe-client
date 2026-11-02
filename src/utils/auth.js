@@ -116,6 +116,19 @@ export const auth = {
     }
   },
 
+  // Permanently delete user account
+  deleteAccount: async (password) => {
+    try {
+      const response = await api.delete('/users/account', { data: { password } });
+      localStorage.removeItem('vibe_user');
+      localStorage.removeItem('vibe_access_token');
+      localStorage.removeItem('vibe_refresh_token');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Forgot Password - Request OTP to email
   forgotPassword: async (email) => {
     try {

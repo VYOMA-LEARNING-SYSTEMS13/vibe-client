@@ -118,20 +118,20 @@ const Signup = () => {
     const newErrors = {};
 
     if (role === 'industry') {
-      if (!formData.companyName.trim()) newErrors.companyName = 'Company name is required';
-      if (!formData.industryType.trim()) newErrors.industryType = 'Industry type is required';
+      if (!formData.companyName?.trim()) newErrors.companyName = 'Company name is required';
+      if (!formData.industryType?.trim()) newErrors.industryType = 'Industry type is required';
     } else {
-      if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
+      if (!formData.fullName?.trim()) newErrors.fullName = 'Full name is required';
       if (!formData.dob) newErrors.dob = 'Date of birth is required';
     }
 
-    if (!formData.mobile.trim()) {
+    if (!formData.mobile?.trim()) {
       newErrors.mobile = 'Mobile number is required';
     } else if (!isValidMobile(formData.mobile)) {
       newErrors.mobile = 'Please enter a valid mobile number';
     }
 
-    if (!formData.email.trim()) {
+    if (!formData.email?.trim()) {
       newErrors.email = 'Email is required';
     } else if (!isValidEmail(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
@@ -145,20 +145,26 @@ const Signup = () => {
     const newErrors = {};
 
     if (role === 'student') {
-      if (!formData.collegeName.trim()) newErrors.collegeName = 'College name is required';
+      if (!formData.collegeName?.trim()) newErrors.collegeName = 'College name is required';
       if (!formData.degree) newErrors.degree = 'Degree is required';
-      if (!formData.branch.trim()) newErrors.branch = 'Branch is required';
+      if (!formData.branch?.trim()) newErrors.branch = 'Branch is required';
       if (!formData.currentYear) newErrors.currentYear = 'Current year is required';
     } else if (role === 'faculty') {
-      if (!formData.collegeName.trim()) newErrors.collegeName = 'College name is required';
-      if (!formData.position.trim()) newErrors.position = 'Position is required';
-      if (!formData.experience) newErrors.experience = 'Experience is required';
-      if (!formData.expertise.trim()) newErrors.expertise = 'Expertise is required';
-      if (!formData.skills || formData.skills.length === 0) newErrors.skills = 'Please add at least one skill';
-      if (formData.skills && formData.skills.length > 0 && newErrors.skills) delete newErrors.skills;
+      if (!formData.collegeName?.trim()) newErrors.collegeName = 'College name is required';
+      if (!formData.position?.trim()) newErrors.position = 'Position / Designation is required';
+      if (formData.experience === '' || formData.experience === undefined || formData.experience === null) {
+        newErrors.experience = 'Years of experience is required';
+      } else if (isNaN(Number(formData.experience)) || Number(formData.experience) < 0) {
+        newErrors.experience = 'Please enter a valid number of years';
+      }
+      if (!formData.expertise?.trim()) newErrors.expertise = 'Expertise domain is required';
     } else if (role === 'industry') {
-      if (!formData.establishmentYear) newErrors.establishmentYear = 'Establishment year is required';
-      if (!formData.location.trim()) newErrors.location = 'Location is required';
+      if (formData.establishmentYear === '' || formData.establishmentYear === undefined || formData.establishmentYear === null || !String(formData.establishmentYear).trim()) {
+        newErrors.establishmentYear = 'Establishment year is required';
+      } else if (isNaN(Number(formData.establishmentYear)) || Number(formData.establishmentYear) < 1800 || Number(formData.establishmentYear) > new Date().getFullYear()) {
+        newErrors.establishmentYear = 'Please enter a valid establishment year';
+      }
+      if (!formData.location?.trim()) newErrors.location = 'Location is required';
       if (!formData.internshipType) newErrors.internshipType = 'Internship type is required';
       if (formData.website && formData.website.trim() && !isValidUrl(formData.website)) {
         newErrors.website = 'Please enter a valid URL starting with http:// or https://';
@@ -235,35 +241,44 @@ const Signup = () => {
 
   const isStep1Valid = (() => {
     if (role === 'industry') {
-      return formData.companyName.trim() &&
-        formData.industryType.trim() &&
+      return Boolean(
+        formData.companyName?.trim() &&
+        formData.industryType?.trim() &&
         isValidEmail(formData.email) &&
-        isValidMobile(formData.mobile);
+        isValidMobile(formData.mobile)
+      );
     }
-    return formData.fullName.trim() &&
+    return Boolean(
+      formData.fullName?.trim() &&
       formData.dob &&
       isValidMobile(formData.mobile) &&
-      isValidEmail(formData.email);
+      isValidEmail(formData.email)
+    );
   })();
 
   const isStep2Valid = (() => {
     if (role === 'student') {
-      return formData.collegeName.trim() &&
+      return Boolean(
+        formData.collegeName?.trim() &&
         formData.degree &&
-        formData.branch.trim() &&
-        formData.currentYear;
+        formData.branch?.trim() &&
+        formData.currentYear
+      );
     }
     if (role === 'faculty') {
-      return formData.collegeName.trim() &&
-        formData.position.trim() &&
-        formData.experience &&
-        formData.expertise.trim() &&
-        Array.isArray(formData.skills) &&
-        formData.skills.length > 0;
+      return Boolean(
+        formData.collegeName?.trim() &&
+        formData.position?.trim() &&
+        String(formData.experience ?? '').trim() &&
+        !isNaN(Number(formData.experience)) &&
+        Number(formData.experience) >= 0 &&
+        formData.expertise?.trim()
+      );
     }
     if (role === 'industry') {
-      const hasRequired = formData.establishmentYear &&
-        formData.location.trim() &&
+      const hasRequired = String(formData.establishmentYear ?? '').trim() &&
+        !isNaN(Number(formData.establishmentYear)) &&
+        formData.location?.trim() &&
         formData.internshipType;
       const isWebsiteOk = !formData.website || !formData.website.trim() || isValidUrl(formData.website);
       return Boolean(hasRequired && isWebsiteOk);
@@ -371,7 +386,7 @@ const Signup = () => {
       email: formData.email,
       role: role,
       accountType: role,
-      name: role === 'industry' ? formData.companyName : formData.fullName,
+      name: role === 'industry' ? (formData.fullName?.trim() || formData.companyName) : formData.fullName,
       mobileNo: formData.mobile,
       dob: formData.dob,
       password: formData.password,
@@ -385,7 +400,9 @@ const Signup = () => {
       position: formData.position,
       experience: formData.experience,
       expertise: formData.expertise,
-      skills: formData.skills || [],
+      skills: (Array.isArray(formData.skills) && formData.skills.length > 0)
+        ? formData.skills
+        : (formData.expertise ? formData.expertise.split(',').map(s => s.trim()).filter(Boolean) : []),
       
       // Industry specific
       companyName: formData.companyName,
@@ -437,6 +454,7 @@ const Signup = () => {
               {[
                 { id: 'student', label: 'Student', path: '/signup/student', icon: <GraduationCap size={14} /> },
                 { id: 'faculty', label: 'Faculty', path: '/signup/faculty', icon: <User size={14} /> },
+                { id: 'industry', label: 'Industry', path: '/signup/industry', icon: <Briefcase size={14} /> },
               ].map((tab) => {
                 const active = role === tab.id;
                 return (
@@ -619,6 +637,14 @@ const Signup = () => {
                         {role === 'industry' ? (
                           <>
                             <InputField
+                              label="Full Name"
+                              icon={<User size={18} />}
+                              placeholder="Parth Patel"
+                              value={formData.fullName}
+                              onChange={v => updateFormData({ fullName: v })}
+                              error={errors.fullName}
+                            />
+                            <InputField
                               label="Company Name"
                               icon={<Building size={18} />}
                               placeholder="Acme Corp"
@@ -640,7 +666,7 @@ const Signup = () => {
                             <InputField
                               label="Full Name"
                               icon={<User size={18} />}
-                              placeholder="John Doe"
+                              placeholder="Parth Patel"
                               value={formData.fullName}
                               onChange={v => updateFormData({ fullName: v })}
                               error={errors.fullName}
@@ -679,7 +705,7 @@ const Signup = () => {
                         <Button
                           fullWidth
                           size="lg"
-                          disabled={!isStep1Valid}
+                          type="button"
                           onClick={nextStep}
                           className="h-13 text-base !rounded-full !bg-[#6D3DF5] hover:!bg-[#5B2ED0] !text-white !shadow-md !shadow-[#6D3DF5]/20 focus:!ring-[#6D3DF5]"
                         >
@@ -819,6 +845,7 @@ const Signup = () => {
 
                       <div className="flex flex-col-reverse sm:flex-row gap-3 sm:space-x-4 pt-2">
                         <Button
+                          type="button"
                           variant="secondary"
                           className="sm:flex-1 h-13 !rounded-full !bg-[#F8FAFF] !text-[#172554] !border !border-[#E2E8F0] hover:!bg-[#F3EEFF]/60 hover:!border-[#6D3DF5]/30 focus:!ring-[#6D3DF5]"
                           onClick={prevStep}
@@ -826,9 +853,9 @@ const Signup = () => {
                           <ArrowLeft className="mr-2" size={18} /> Back
                         </Button>
                         <Button
+                          type="button"
                           className="sm:flex-[2] h-13 text-base !rounded-full !bg-[#6D3DF5] hover:!bg-[#5B2ED0] !text-white !shadow-md !shadow-[#6D3DF5]/20 focus:!ring-[#6D3DF5]"
                           size="lg"
-                          disabled={!isStep2Valid}
                           onClick={nextStep}
                         >
                           Next Step <ArrowRight className="ml-2" size={18} />
@@ -916,7 +943,7 @@ const Signup = () => {
                               email: formData.email,
                               role: role,
                               accountType: role,
-                              name: role === 'industry' ? formData.companyName : formData.fullName,
+                              name: role === 'industry' ? (formData.fullName?.trim() || formData.companyName) : formData.fullName,
                               mobileNo: formData.mobile,
                               dob: formData.dob,
                               password: formData.password,
@@ -930,7 +957,9 @@ const Signup = () => {
                               position: formData.position,
                               experience: formData.experience,
                               expertise: formData.expertise,
-                              skills: formData.skills || [],
+                              skills: (Array.isArray(formData.skills) && formData.skills.length > 0)
+                                ? formData.skills
+                                : (formData.expertise ? formData.expertise.split(',').map(s => s.trim()).filter(Boolean) : []),
 
                               // Industry specific
                               companyName: formData.companyName,
@@ -1111,43 +1140,47 @@ const InputField = ({
   onChange,
   error,
   ...props
-}) => (
-  <div className="relative group">
-    <label className="vibe-auth-label group-focus-within:text-[#6D3DF5]">
-      {label}
-    </label>
-    <div className="relative">
-      <div
-        className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${
-          error ? 'text-red-500' : 'text-[#64748B] group-focus-within:text-[#6D3DF5]'
-        }`}
-      >
-        {icon}
+}) => {
+  const resolvedPlaceholder = placeholder !== undefined ? placeholder : (label === 'Full Name' ? 'Parth Patel' : '');
+
+  return (
+    <div className="relative group">
+      <label className="vibe-auth-label group-focus-within:text-[#6D3DF5]">
+        {label}
+      </label>
+      <div className="relative">
+        <div
+          className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${
+            error ? 'text-red-500' : 'text-[#64748B] group-focus-within:text-[#6D3DF5]'
+          }`}
+        >
+          {icon}
+        </div>
+        <input
+          type={type}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className={`w-full bg-[#F8FAFF] border rounded-2xl py-3.5 pl-12 pr-4 text-[#172554] placeholder-[#94A3B8] focus:outline-none focus:bg-white transition-all font-medium ${
+            error
+              ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
+              : 'border-[#E2E8F0] focus:border-[#6D3DF5] focus:ring-4 focus:ring-[#6D3DF5]/10'
+          }`}
+          placeholder={resolvedPlaceholder}
+          {...props}
+        />
       </div>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className={`w-full bg-[#F8FAFF] border rounded-2xl py-3.5 pl-12 pr-4 text-[#172554] placeholder-[#94A3B8] focus:outline-none focus:bg-white transition-all font-medium ${
-          error
-            ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
-            : 'border-[#E2E8F0] focus:border-[#6D3DF5] focus:ring-4 focus:ring-[#6D3DF5]/10'
-        }`}
-        placeholder={placeholder}
-        {...props}
-      />
+      {error && (
+        <motion.p
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-xs text-red-500 mt-1.5 ml-1 font-medium"
+        >
+          {error}
+        </motion.p>
+      )}
     </div>
-    {error && (
-      <motion.p
-        initial={{ opacity: 0, y: -5 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-xs text-red-500 mt-1.5 ml-1 font-medium"
-      >
-        {error}
-      </motion.p>
-    )}
-  </div>
-);
+  );
+};
 
 const SelectField = ({
   label,
