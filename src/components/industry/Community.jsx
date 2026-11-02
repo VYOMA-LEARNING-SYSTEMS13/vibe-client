@@ -6,7 +6,7 @@ import { CreatePostModal } from "../posts/CreatePostModal";
 import api from "../../services/api";
 import { auth } from "../../utils/auth";
 
-export const Community = () => {
+export const Community = ({ searchQuery = "" }) => {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [posts, setPosts] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
@@ -46,7 +46,10 @@ export const Community = () => {
                timestamp: new Date(c.createdAt).toLocaleDateString(),
                likes: c.vibes ? Object.keys(c.vibes).length : 0,
                isLiked: !!(c.vibes && user && c.vibes[user._id]),
-            }))
+            })),
+            repostOf: post.repostOf || null,
+            repostComment: post.repostComment || "",
+            repostCount: post.repostCount || (Array.isArray(post.reposts) ? post.reposts.length : 0),
           }));
           setPosts(mappedPosts);
         }
@@ -55,7 +58,61 @@ export const Community = () => {
       }
     };
     fetchData();
+
+    const handleDeleted = (e) => {
+      const { postId } = e.detail || {};
+      if (postId) {
+        setPosts((prev) => prev.filter((p) => (p.id || p._id) !== postId));
+      }
+    };
+
+    const handleUpdated = (e) => {
+      const { post: updated } = e.detail || {};
+      if (updated) {
+        const uId = updated._id || updated.id;
+        setPosts((prev) =>
+          prev.map((p) =>
+            (p.id || p._id) === uId
+              ? {
+                  ...p,
+                  title: updated.title,
+                  content: updated.content,
+                  category: updated.category,
+                  tags: Array.isArray(updated.tags) ? updated.tags : p.tags,
+                  attachments: Array.isArray(updated.attachments)
+                    ? updated.attachments
+                    : p.attachments,
+                }
+              : p
+          )
+        );
+      }
+    };
+
+    const handleReposted = () => {
+      fetchData();
+    };
+
+    window.addEventListener("vibe:post_deleted", handleDeleted);
+    window.addEventListener("vibe:post_updated", handleUpdated);
+    window.addEventListener("vibe:post_reposted", handleReposted);
+
+    return () => {
+      window.removeEventListener("vibe:post_deleted", handleDeleted);
+      window.removeEventListener("vibe:post_updated", handleUpdated);
+      window.removeEventListener("vibe:post_reposted", handleReposted);
+    };
   }, []);
+
+  const query = (searchQuery || "").trim().toLowerCase();
+  const visiblePosts = !query
+    ? posts
+    : posts.filter((post) => {
+        const inTitle = post.title && post.title.toLowerCase().includes(query);
+        const inContent = post.content && post.content.toLowerCase().includes(query);
+        const inAuthor = post.author?.name && post.author.name.toLowerCase().includes(query);
+        return Boolean(inTitle || inContent || inAuthor);
+      });
 
   return (
     <>
@@ -63,16 +120,16 @@ export const Community = () => {
         {/* Header with Create Post Button */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
+            <h2 className="text-xl font-bold text-[#0F172A] mb-2">
               Community Posts
             </h2>
-            <p className="text-gray-600">
+            <p className="text-[#64748B]">
               Connect, share, and learn with the VIBE community
             </p>
           </div>
           <button
             onClick={() => setIsCreatePostOpen(true)}
-            className="flex items-center justify-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-orange-200 hover:bg-orange-700 transition-all"
+            className="flex items-center justify-center gap-2 bg-[#6D3DF5] text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-[#6D3DF5]/20 hover:bg-[#5B2FD6] transition-all"
           >
             <Plus size={18} />
             <span>Create Post</span>
@@ -81,13 +138,15 @@ export const Community = () => {
 
         {/* Posts Feed */}
         <div className="space-y-6">
-          {posts && posts.length > 0 ? (
-            posts.map((post, index) => (
+          {visiblePosts && visiblePosts.length > 0 ? (
+            visiblePosts.map((post, index) => (
               <PostCard post={post} index={index} key={post.id} />
             ))
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500">No posts available</p>
+              <p className="text-gray-500">
+                {query ? "No posts match your search." : "No posts available"}
+              </p>
             </div>
           )}
         </div>

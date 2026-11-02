@@ -1,18 +1,18 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  Home,
   MessageSquare,
   User,
   Inbox,
   LogOut,
-  ChevronRight,
-  Menu,
-  X,
+  Zap,
 } from "lucide-react";
 import { auth } from "../../utils/auth";
 import Avatar from "../shared/Avatar";
 
 const menuItems = [
+  { id: "home", label: "Home", icon: Home },
   { id: "posts", label: "Community Posts", icon: MessageSquare },
   { id: "requests", label: "Mentor Requests", icon: Inbox },
   { id: "profile", label: "Profile", icon: User },
@@ -20,7 +20,6 @@ const menuItems = [
 
 export const Sidebar = ({ user, activeView, onNavigate }) => {
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     auth.logout();
@@ -29,7 +28,6 @@ export const Sidebar = ({ user, activeView, onNavigate }) => {
 
   const handleNavigation = (id) => {
     onNavigate(id);
-    setMobileMenuOpen(false);
 
     // Scroll to top when navigating to a new section
     setTimeout(() => {
@@ -41,168 +39,114 @@ export const Sidebar = ({ user, activeView, onNavigate }) => {
         });
       }
 
-      // Also scroll window to top as fallback
       window.scrollTo({
         top: 0,
         behavior: "smooth",
       });
-    }, 100); // Small delay to ensure navigation completes
+    }, 50);
   };
 
   return (
     <>
-      {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-gray-200/50 px-4 py-2">
+      {/* Mobile Icon Bottom Navigation Bar */}
+      <div className="lg:hidden fixed bottom-4 left-4 right-4 z-50 bg-white/95 backdrop-blur-xl border border-[#C9D8E4] rounded-2xl px-3 py-2 shadow-xl">
         <div className="flex items-center justify-around">
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleNavigation(item.id)}
+              aria-label={item.label}
+              title={item.label}
               className={`
-                flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300
+                p-2.5 rounded-xl transition-all duration-200 outline-none
                 ${
                   activeView === item.id
-                    ? "text-orange-600 bg-orange-50"
-                    : "text-gray-500 hover:text-orange-600"
+                    ? "bg-[#1D3C5A] text-white shadow-md shadow-[#1D3C5A]/20"
+                    : "text-[#5E6A76] hover:text-[#1D3C5A] hover:bg-[#E6EEF5]"
                 }
               `}
             >
               <item.icon
-                size={20}
+                size={22}
                 strokeWidth={activeView === item.id ? 2.5 : 2}
               />
-              <span className="text-xs font-semibold">
-                {item.label.split(" ")[0]}
-              </span>
             </button>
           ))}
+
           <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-gray-500 hover:text-orange-600 transition-all duration-300"
+            onClick={handleLogout}
+            aria-label="Logout"
+            title="Logout"
+            className="p-2.5 rounded-xl text-[#728494] hover:text-red-500 hover:bg-red-50 transition-all duration-200 outline-none"
           >
-            <User size={20} />
-            <span className="text-xs font-semibold">Profile</span>
+            <LogOut size={22} />
           </button>
         </div>
       </div>
 
-      {/* Mobile Profile Menu Overlay */}
-      {mobileMenuOpen && (
-        <>
+      {/* Desktop Collapsed Icon-Only Navigation Rail */}
+      <aside className="hidden lg:block fixed left-4 top-6 bottom-6 w-20 z-50">
+        <div className="h-[calc(100vh-3rem)] bg-white border border-[#C9D8E4] rounded-3xl shadow-xl flex flex-col justify-between items-center py-6 px-3">
+          
+          {/* Top Brand Logo Icon */}
           <div
-            onClick={() => setMobileMenuOpen(false)}
-            className="lg:hidden fixed inset-0 bg-black/50 z-40"
-          />
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl p-6 shadow-2xl">
-            {/* User Profile Section */}
-            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
-              <Avatar
-                name={user.name}
-                src={user.avatar}
-                className="w-16 h-16 rounded-2xl ring-2 ring-orange-500/20 shadow-lg"
-                initialsClassName="text-2xl"
-              />
-              <div>
-                <h3 className="font-bold text-gray-800 text-xl">{user.name}</h3>
-                <span className="text-xs font-semibold text-orange-600 bg-orange-100/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  {user.role}
-                </span>
-              </div>
-            </div>
-
-            {/* Profile Actions */}
-            <div className="space-y-3">
-              <button
-                onClick={() => handleNavigation("profile")}
-                className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-300"
-              >
-                <User size={20} />
-                <span className="font-semibold">View Profile</span>
-              </button>
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 transition-all duration-300"
-              >
-                <LogOut size={20} />
-                <span className="font-semibold">Logout</span>
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:block fixed left-0 top-0 h-screen w-80 xl:w-96 p-6 z-50">
-        <div className="h-full bg-white/70 backdrop-blur-xl border border-white/40 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden">
-          {/* User Profile Section */}
-          <div className="p-8 border-b border-gray-100/50">
-            <div
-              onClick={() => handleNavigation("profile")}
-              className="flex items-center gap-4 cursor-pointer"
-            >
-              <div className="relative">
-                <Avatar
-                  name={user.name}
-                  src={user.avatar}
-                  className="w-16 h-16 rounded-2xl ring-2 ring-orange-500/20 shadow-lg"
-                  initialsClassName="text-2xl"
-                />
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-800 text-xl leading-tight">
-                  {user.name}
-                </h3>
-                <span className="text-xs font-semibold text-orange-600 bg-orange-100/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  {user.role}
-                </span>
-              </div>
-            </div>
+            onClick={() => handleNavigation("home")}
+            className="w-11 h-11 bg-[#1D3C5A] rounded-2xl flex items-center justify-center text-white shadow-md shadow-[#1D3C5A]/20 cursor-pointer hover:scale-105 transition-transform"
+            title="VIBE Home"
+          >
+            <Zap className="w-6 h-6 text-white fill-current" />
           </div>
 
-          {/* Navigation Menu */}
-          <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto">
+          {/* Icon Navigation Items */}
+          <nav className="flex-1 flex flex-col items-center justify-center space-y-4 my-6">
             {menuItems.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => handleNavigation(item.id)}
-                className={`
-                  group flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300 cursor-pointer relative
-                  ${
-                    activeView === item.id
-                      ? "bg-orange-600 text-white shadow-lg shadow-orange-200"
-                      : "text-gray-500 hover:bg-orange-50 hover:text-orange-600"
-                  }
-                `}
-              >
-                <item.icon
-                  size={22}
-                  strokeWidth={activeView === item.id ? 2.5 : 2}
-                />
-                <span className="font-bold text-base flex-1">{item.label}</span>
-                {activeView === item.id && (
-                  <div className="absolute right-5 w-2 h-2 bg-white rounded-full" />
-                )}
-                {activeView !== item.id && (
-                  <ChevronRight
-                    size={16}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+              <div key={item.id} className="group relative flex items-center justify-center">
+                <button
+                  onClick={() => handleNavigation(item.id)}
+                  aria-label={item.label}
+                  title={item.label}
+                  className={`
+                    w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 outline-none
+                    ${
+                      activeView === item.id
+                        ? "bg-[#1D3C5A] text-white shadow-lg shadow-[#1D3C5A]/25 scale-105"
+                        : "text-[#5E6A76] hover:bg-[#D3E3EE]/60 hover:text-[#1D3C5A]"
+                    }
+                  `}
+                >
+                  <item.icon
+                    size={22}
+                    strokeWidth={activeView === item.id ? 2.5 : 2}
                   />
-                )}
+                </button>
+
+                {/* Floating Tooltip */}
+                <div className="absolute left-full ml-3 px-3 py-1.5 bg-[#12283F] text-white text-xs font-bold rounded-xl whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-events-none transition-all duration-200 z-50 flex items-center gap-1.5 transform -translate-x-1 group-hover:translate-x-0">
+                  <div className="absolute -left-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#12283F]" />
+                  {item.label}
+                </div>
               </div>
             ))}
           </nav>
 
-          {/* Logout Section */}
-          <div className="p-6 border-t border-gray-100/50">
+          {/* Bottom Logout Action */}
+          <div className="group relative flex items-center justify-center">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-red-500 font-bold transition-all duration-300 text-base hover:bg-red-50"
+              aria-label="Logout"
+              title="Logout"
+              className="w-12 h-12 rounded-2xl text-[#728494] hover:bg-red-50 hover:text-red-500 transition-all duration-200 flex items-center justify-center outline-none"
             >
               <LogOut size={22} />
-              <span>Logout</span>
             </button>
+
+            {/* Logout Tooltip */}
+            <div className="absolute left-full ml-3 px-3 py-1.5 bg-[#12283F] text-white text-xs font-bold rounded-xl whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-events-none transition-all duration-200 z-50 flex items-center gap-1.5 transform -translate-x-1 group-hover:translate-x-0">
+              <div className="absolute -left-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#12283F]" />
+              Logout
+            </div>
           </div>
+
         </div>
       </aside>
     </>
