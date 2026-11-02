@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Settings,
@@ -31,6 +32,7 @@ import Avatar from "../shared/Avatar";
 
 export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = null }) => {
   const toast = useToast();
+  const navigate = useNavigate();
   const currentUser = user || auth.getCurrentUser();
 
   const rawRole = String(
@@ -45,6 +47,7 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
     profile: initialSection === "profile",
     email: initialSection === "email",
     password: initialSection === "password",
+    deleteAccount: initialSection === "deleteAccount" || initialSection === "delete",
   });
 
   const toggleSection = (sectionKey) => {
@@ -52,6 +55,37 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
       ...prev,
       [sectionKey]: !prev[sectionKey],
     }));
+  };
+
+  // State for Delete Account Permanently
+  const [deletePassword, setDeletePassword] = useState("");
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [confirmDeletionChecked, setConfirmDeletionChecked] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  const handleDeleteAccount = async (e) => {
+    e.preventDefault();
+    if (!deletePassword.trim() || !confirmDeletionChecked || deletingAccount) return;
+
+    setDeletingAccount(true);
+    setDeleteError("");
+
+    try {
+      await auth.deleteAccount(deletePassword);
+      toast.success("Your account has been deleted permanently.");
+      navigate("/");
+    } catch (err) {
+      console.error("Account deletion failed:", err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to delete account. Please verify your password.";
+      setDeleteError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   // Profile picture upload state & handlers
@@ -1391,6 +1425,158 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
                         <>
                           <Lock size={15} />
                           <span>Update Password</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* ==================================================================== */}
+      {/* CARD 4: Delete Account Permanently */}
+      {/* ==================================================================== */}
+      <div className="bg-white rounded-2xl border border-red-200/80 shadow-[0_1px_2px_rgba(239,68,68,0.04)] transition-all hover:border-red-300 hover:shadow-sm">
+        {/* Clickable Header Button */}
+        <button
+          type="button"
+          onClick={() => toggleSection("deleteAccount")}
+          aria-expanded={openSections.deleteAccount}
+          aria-controls="settings-section-delete-account"
+          className={`w-full flex items-center justify-between gap-4 p-5 md:p-6 text-left transition-colors cursor-pointer select-none rounded-2xl hover:bg-red-50/40 ${
+            openSections.deleteAccount ? "rounded-b-none border-b border-red-100" : ""
+          }`}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-100">
+              <Trash2 size={18} />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-red-600 truncate sm:overflow-visible">
+                Delete Account Permanently
+              </h2>
+              <p className="text-xs text-[#64748B] line-clamp-1 sm:line-clamp-none">
+                Permanently delete your account and associated data. This action cannot be undone.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <div
+              className={`w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 transition-all transform duration-200 ${
+                openSections.deleteAccount ? "rotate-180 text-red-600" : ""
+              }`}
+            >
+              <ChevronDown size={18} />
+            </div>
+          </div>
+        </button>
+
+        {/* Collapsible Content */}
+        <AnimatePresence initial={false}>
+          {openSections.deleteAccount && (
+            <motion.div
+              id="settings-section-delete-account"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <div className="p-5 md:p-6 pt-5 space-y-6">
+                {/* Warning Alert Box */}
+                <div className="p-4 rounded-xl bg-red-50/70 border border-red-200 text-xs text-[#7F1D1D] space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-red-700">
+                    <Trash2 size={16} className="text-red-600 shrink-0" />
+                    <span>Warning: Account deletion is permanent and cannot be undone</span>
+                  </div>
+                  <p className="text-red-800 leading-relaxed">
+                    Deleting your account will permanently erase your personal profile, credentials, and uploaded profile image.
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-red-800/90 pl-1">
+                    <li>Your mentorship requests, reviews, and private activities will be deleted.</li>
+                    <li>Your comments, task applications, reactions, and bookmarks will be removed.</li>
+                    <li>Any tasks or cohort projects you created will be safely retired to protect other users&apos; active work.</li>
+                    <li>You will be immediately logged out, and you will not be able to log in or recover your account.</li>
+                  </ul>
+                </div>
+
+                {deleteError && (
+                  <div className="p-3.5 rounded-xl bg-red-100/80 border border-red-300 text-xs text-red-700 font-semibold flex items-center gap-2">
+                    <X size={15} className="shrink-0 text-red-600" />
+                    <span>{deleteError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleDeleteAccount} className="space-y-4 max-w-md">
+                  {/* Current Password Field with visibility toggle */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">
+                      Current Password <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showDeletePassword ? "text" : "password"}
+                        value={deletePassword}
+                        onChange={(e) => {
+                          setDeletePassword(e.target.value);
+                          setDeleteError("");
+                        }}
+                        placeholder="Enter your current password to confirm"
+                        className={`${inputClasses} pr-10 focus:border-red-500 focus:ring-red-500/15`}
+                        required
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowDeletePassword(!showDeletePassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#0F172A] transition-colors cursor-pointer"
+                        aria-label={showDeletePassword ? "Hide password" : "Show password"}
+                      >
+                        {showDeletePassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Explicit Confirmation Checkbox */}
+                  <div className="flex items-start gap-2.5 pt-1">
+                    <input
+                      type="checkbox"
+                      id="confirm-delete-checkbox"
+                      checked={confirmDeletionChecked}
+                      onChange={(e) => {
+                        setConfirmDeletionChecked(e.target.checked);
+                        setDeleteError("");
+                      }}
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="confirm-delete-checkbox"
+                      className="text-xs text-[#475569] font-medium leading-relaxed cursor-pointer select-none"
+                    >
+                      I understand that permanently deleting my account will erase my personal data and access immediately, and this action cannot be undone.
+                    </label>
+                  </div>
+
+                  {/* Destructive Action Button */}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={!deletePassword.trim() || !confirmDeletionChecked || deletingAccount}
+                      className="px-5 py-2.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {deletingAccount ? (
+                        <>
+                          <Loader2 size={15} className="animate-spin" />
+                          <span>Deleting Account Permanently...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 size={15} />
+                          <span>Delete My Account Permanently</span>
                         </>
                       )}
                     </button>
